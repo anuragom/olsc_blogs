@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    container_name: olsc_app
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - MONGO_URI=${MONGO_URI}
+      - NODE_ENV=production
+      - BASE_URL=http://localhost:5000
+      - UPLOAD_DIR=uploads
+    volumes:
+      - ./uploads:/app/uploads
+    restart: always
