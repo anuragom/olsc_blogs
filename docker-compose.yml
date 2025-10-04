@@ -12,4 +12,7 @@ services:
       - UPLOAD_DIR=uploads
     volumes:
       - ./uploads:/app/uploads
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     restart: always
