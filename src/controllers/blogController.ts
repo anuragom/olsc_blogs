@@ -1,17 +1,20 @@
 import { Request, Response } from "express";
 import Blog from "@models/Blog";
 import path from "path";
-import { markdownToBlocks } from "@utils/markdownToBlocks";
 import fs from "fs";
+import slugify from "slugify";
+import { AuthRequest } from "@middlewares/auth";
+import { Types } from "mongoose";
 
 const uploadDir = process.env.UPLOAD_DIR || "uploads";
 
-export const createBlog = async (req: Request, res: Response) => {
+export const createBlog = async (req: AuthRequest, res: Response) => {
   try {
+    const authorId = req.user?._id;
     const uploadPath = path.join(process.cwd(), "src", uploadDir);
     if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
 
-    const { title, summary, author, estimatedReadTime } = req.body;
+    const { title, summary, estimatedReadTime, slug, metaTitle, metaDescription } = req.body;
     if (!title) return res.status(400).json({ message: "Title is required" });
 
     const safeParse = <T>(input: any, fallback: T): T => {
@@ -49,10 +52,25 @@ export const createBlog = async (req: Request, res: Response) => {
       });
     }
 
+    let finalSlug = slug?.trim()
+      ? slugify(slug, { lower: true, strict: true })
+      : slugify(title, { lower: true, strict: true });
+
+    // ensure uniqueness
+    let uniqueSlug = finalSlug;
+    let counter = 1;
+    while (await Blog.findOne({ slug: uniqueSlug })) {
+      uniqueSlug = `${finalSlug}-${counter++}`;
+    }
+
+
     const blog = await Blog.create({
       title,
+      slug: uniqueSlug,
+      metaTitle,
+      metaDescription,
       summary,
-      author,
+      author: authorId,
       tags,
       categories,
       faqs,
@@ -69,13 +87,14 @@ export const createBlog = async (req: Request, res: Response) => {
 };
 
 
-export const updateBlogById = async (req: Request, res: Response) => {
+export const updateBlogById = async (req: AuthRequest, res: Response) => {
   try {
+    const authorId = req.user?._id;
     const blogId = req.params.id;
     const existingBlog = await Blog.findById(blogId);
     if (!existingBlog) return res.status(404).json({ message: "Blog not found" });
 
-    const { title, summary, author, estimatedReadTime } = req.body;
+    const { title, summary, estimatedReadTime, slug, metaTitle, metaDescription, } = req.body;
 
     // ✅ Safe JSON parser utility
     const safeParse = <T>(input: any, fallback: T): T => {
@@ -118,11 +137,27 @@ export const updateBlogById = async (req: Request, res: Response) => {
       });
     }
 
+    let finalSlug = slug?.trim()
+      ? slugify(slug, { lower: true, strict: true })
+      : slugify(title || existingBlog.title, { lower: true, strict: true });
+
+    // Ensure uniqueness only if slug changed
+    if (finalSlug !== existingBlog.slug) {
+      let uniqueSlug = finalSlug;
+      let counter = 1;
+      while (await Blog.findOne({ slug: uniqueSlug, _id: { $ne: blogId } })) {
+        uniqueSlug = `${finalSlug}-${counter++}`;
+      }
+      existingBlog.slug = uniqueSlug;
+    }
+
     // ✅ Update fields safely
     existingBlog.title = title || existingBlog.title;
     existingBlog.summary = summary || existingBlog.summary;
-    existingBlog.author = author || existingBlog.author;
+    existingBlog.author = authorId ? new Types.ObjectId(authorId) : existingBlog.author;
     existingBlog.estimatedReadTime = estimatedReadTime || existingBlog.estimatedReadTime;
+    existingBlog.metaTitle = metaTitle || existingBlog.metaTitle;
+    existingBlog.metaDescription = metaDescription || existingBlog.metaDescription;
     existingBlog.blocks = blocks;
     existingBlog.coverImage = coverImage;
     existingBlog.tags = tags;
@@ -153,6 +188,7 @@ export const getAllBlogs = async (req: Request, res: Response) => {
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(limit)
+      .populate("author")
       .lean();
 
     const totalBlogs = await Blog.countDocuments();
@@ -174,7 +210,7 @@ export const getAllBlogs = async (req: Request, res: Response) => {
 // Get Single Blog
 export const getBlogById = async (req: Request, res: Response) => {
   try {
-    const blog = await Blog.findById(req.params.id);
+    const blog = await Blog.findById(req.params.id).populate("author");
     if (!blog) return res.status(404).json({ message: "Blog not found" });
     return res.status(200).json(blog);
   } catch (err: any) {
@@ -195,20 +231,53 @@ export const deleteBlogById = async (req: Request, res: Response) => {
   }
 };
 
-// Search Blogs
+// get Blog by slug
+export const getBlogBySlug = async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+
+    // Find by slug instead of ID
+    const blog = await Blog.findOne({ slug }).populate("author");
+
+    if (!blog) {
+      return res.status(404).json({ message: "Blog not found" });
+    }
+
+    return res.status(200).json(blog);
+  } catch (err: any) {
+    console.error("❌ Error fetching blog by slug:", err);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+
 export const searchBlogs = async (req: Request, res: Response) => {
   try {
     const q = (req.query.q as string) || "";
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
 
-    const filter = { title: { $regex: q, $options: "i" } };
+    const filter: any = {
+      $or: [
+        { title: { $regex: q, $options: "i" } },
+        { "author.fullName": { $regex: q, $options: "i" } }, // after populating author
+        { categories: { $in: [new RegExp(q, "i")] } }, // match array elements
+      ],
+    };
 
     const totalBlogs = await Blog.countDocuments(filter);
-    const blogs = await Blog.find(filter)
+
+    const blogs = await Blog.find()
+      .populate("author") // populate author document
+      .or([
+        { title: { $regex: q, $options: "i" } },
+        { "author.fullName": { $regex: q, $options: "i" } },
+        { categories: { $in: [new RegExp(q, "i")] } },
+      ])
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 });
+
 
     res.json({
       data: blogs,
@@ -224,18 +293,3 @@ export const searchBlogs = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
-
-
-
-// [
-//   {"type":"heading","data":{"text":"Hello World","level":1}},
-//   {"type":"image","data":{"src":"image1"}},
-//   {"type":"image","data":{"src":"image2"}},
-//   {"type":"list","data":{"style":"unordered","items": ["Apples", "Bananas", "Oranges"]}},
-//   {"type":"heading","data":{"text":"This is for heading level 2 test","level":2}},
-//   {"type":"paragraph","data":{"text":"paragraph one just for testing the blocks are working properly in this blog schema or not?"}},
-//   {"type":"list","data":{"style":"ordered","items": ["First step", "Second step", "Third step"]}},
-//   {"type":"paragraph","data":{"text":"India's ambitious 'Make In India' initiative aims to transform the nation into a global manufacturing hub, boosting domestic production, creating jobs and reducing reliance on imports. In the critical container manufacturing industry, Transafe stands as a prime example of this vision in action."}},
-//   {"type":"table","data":{"content":[["Name","Age","Country"],["Raghav","22","India"],["Taskiya","21","India"]]}}
-// ]

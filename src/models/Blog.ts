@@ -1,50 +1,5 @@
-// import { Schema, model, Document } from "mongoose";
-
-// export interface Block {
-//   type: "paragraph" | "image" | "video" | "heading" | "list" | "quote" | "code";
-//   data: any;
-//   children?: Block[];
-// }
-
-// export interface IBlog extends Document {
-//   title: string;
-//   summary?: string;
-//   tags?: string[];
-//   estimatedReadTime?: number;
-//   blocks: Block[];
-//   author?: string;
-//   coverImage?: string;
-//   createdAt: Date;
-//   updatedAt: Date;
-// }
-
-// const blockSchema = new Schema<Block>(
-//   {
-//     type: { type: String, required: true },
-//     data: { type: Schema.Types.Mixed, required: true },
-//     children: { type: [Schema.Types.Mixed], default: [] },
-//   },
-//   { _id: false }
-// );
-
-// const blogSchema = new Schema<IBlog>(
-//   {
-//     title: { type: String, required: true },
-//     summary: { type: String },
-//     tags: { type: [String], default: [] },
-//     estimatedReadTime: { type: Number },
-//     blocks: { type: [blockSchema], required: true },
-//     author: { type: String },
-//     coverImage: { type: String },
-//   },
-//   { timestamps: true }
-// );
-
-// blogSchema.index({ title: "text", tags: 1 });
-
-// export default model<IBlog>("Blog", blogSchema);
-
-import { Schema, model, Document } from "mongoose";
+import { Schema, model, Document, Types } from "mongoose";
+import { IUser } from "./User";
 
 export interface Block {
   type: "paragraph" | "heading" | "list" | "image" | "video" | "quote" | "code" | "table";
@@ -67,6 +22,9 @@ export interface FAQ {
 
 export interface IBlog extends Document {
   title: string;
+  slug: string;
+  metaTitle?: string;
+  metaDescription?: string;
   summary?: string;
   tags?: string[];
   categories?: string[];
@@ -74,7 +32,7 @@ export interface IBlog extends Document {
   blocks: Block[];
   images?: string[];
   faqs?: FAQ[];
-  author?: string;
+  author?: Types.ObjectId | IUser;
   coverImage?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -99,6 +57,9 @@ const faqSchema = new Schema<FAQ>(
 const blogSchema = new Schema<IBlog>(
   {
     title: { type: String, required: true },
+    slug: { type: String, required: true, unique: true },
+    metaTitle: { type: String },
+    metaDescription: { type: String },
     summary: { type: String },
     tags: { type: [String], default: [] },
     categories: { type: [String], default: [] },
@@ -106,7 +67,7 @@ const blogSchema = new Schema<IBlog>(
     blocks: { type: [blockSchema], required: true },
     images: { type: [String], default: [] },
     faqs: { type: [faqSchema], default: [] },
-    author: { type: String },
+    author: { type: Schema.Types.ObjectId, ref: "User" },
     coverImage: { type: String },
   },
   { timestamps: true }

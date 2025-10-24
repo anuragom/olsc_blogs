@@ -6,10 +6,16 @@ services:
       - "5000:5000"
     environment:
       - PORT=5000
-      - MONGO_URI=${MONGO_URI}
       - NODE_ENV=production
       - BASE_URL=http://localhost:5000
       - UPLOAD_DIR=uploads
+      # MongoDB connection
+      - MONGO_URI=${MONGO_URI}
+      # JWT secrets
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN}
     volumes:
       - ./uploads:/app/uploads
     dns:
