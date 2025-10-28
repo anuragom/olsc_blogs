@@ -8,11 +8,87 @@ import { Types } from "mongoose";
 
 const uploadDir = process.env.UPLOAD_DIR || "uploads";
 
+// export const createBlog = async (req: AuthRequest, res: Response) => {
+//   try {
+//     const authorId = req.user?._id;
+//     const uploadPath = path.join(process.cwd(), "src", uploadDir);
+//     if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
+
+//     const { title, summary, estimatedReadTime, slug, metaTitle, metaDescription } = req.body;
+//     if (!title) return res.status(400).json({ message: "Title is required" });
+
+//     const safeParse = <T>(input: any, fallback: T): T => {
+//       if (!input) return fallback;
+//       try {
+//         return typeof input === "string" ? JSON.parse(input) : input;
+//       } catch {
+//         return fallback;
+//       }
+//     };
+
+//     const tags = safeParse<string[]>(req.body.tags, []);
+//     const categories = safeParse<string[]>(req.body.categories, []);
+//     const faqs = safeParse<{ question: string; answer: string }[]>(req.body.faqs, []);
+//     let blocks = safeParse<any[]>(req.body.blocks, []);
+
+
+//     const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+//     const dynamicBaseUrl = `${req.protocol}://${req.get("host")}`;
+
+//     const coverImage =
+//       files?.coverImage?.[0]
+//         ? `${dynamicBaseUrl}/uploads/${files.coverImage[0].filename}`
+//         : "";
+
+//     if (blocks.length && files?.images?.length) {
+//       let imageIndex = 0;
+//       blocks = blocks.map((block) => {
+//         if (block.type === "image" && imageIndex < files.images.length) {
+//           block.data.url = `${dynamicBaseUrl}/uploads/${files.images[imageIndex].filename}`;
+//           delete block.data.src;
+//           imageIndex++;
+//         }
+//         return block;
+//       });
+//     }
+
+//     let finalSlug = slug?.trim()
+//       ? slugify(slug, { lower: true, strict: true })
+//       : slugify(title, { lower: true, strict: true });
+
+//     // ensure uniqueness
+//     let uniqueSlug = finalSlug;
+//     let counter = 1;
+//     while (await Blog.findOne({ slug: uniqueSlug })) {
+//       uniqueSlug = `${finalSlug}-${counter++}`;
+//     }
+
+
+//     const blog = await Blog.create({
+//       title,
+//       slug: uniqueSlug,
+//       metaTitle,
+//       metaDescription,
+//       summary,
+//       author: authorId,
+//       tags,
+//       categories,
+//       faqs,
+//       estimatedReadTime,
+//       blocks,
+//       coverImage,
+//     });
+
+//     return res.status(201).json({ message: "Blog created", blog });
+//   } catch (err: any) {
+//     console.error("❌ Error in createBlog:", err);
+//     return res.status(500).json({ message: err.message });
+//   }
+// };
+
 export const createBlog = async (req: AuthRequest, res: Response) => {
   try {
     const authorId = req.user?._id;
-    const uploadPath = path.join(process.cwd(), "src", uploadDir);
-    if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
 
     const { title, summary, estimatedReadTime, slug, metaTitle, metaDescription } = req.body;
     if (!title) return res.status(400).json({ message: "Title is required" });
@@ -31,21 +107,30 @@ export const createBlog = async (req: AuthRequest, res: Response) => {
     const faqs = safeParse<{ question: string; answer: string }[]>(req.body.faqs, []);
     let blocks = safeParse<any[]>(req.body.blocks, []);
 
-
     const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-    const dynamicBaseUrl = `${req.protocol}://${req.get("host")}`;
 
-    const coverImage =
-      files?.coverImage?.[0]
-        ? `${dynamicBaseUrl}/uploads/${files.coverImage[0].filename}`
-        : "";
+    // ✅ Convert cover image to buffer
+    const coverFile = files?.coverImage?.[0];
+    const coverImage = coverFile
+      ? {
+          data: fs.readFileSync(coverFile.path),
+          contentType: coverFile.mimetype,
+        }
+      : undefined;
 
-    if (blocks.length && files?.images?.length) {
+    // ✅ Convert extra images to buffer array
+    const imageFiles = files?.images || [];
+    const images = imageFiles.map((file) => ({
+      data: fs.readFileSync(file.path),
+      contentType: file.mimetype,
+    }));
+
+    // ✅ Embed images into block content if type = "image"
+    if (blocks.length && images.length) {
       let imageIndex = 0;
       blocks = blocks.map((block) => {
-        if (block.type === "image" && imageIndex < files.images.length) {
-          block.data.url = `${dynamicBaseUrl}/uploads/${files.images[imageIndex].filename}`;
-          delete block.data.src;
+        if (block.type === "image" && imageIndex < images.length) {
+          block.data.image = images[imageIndex];
           imageIndex++;
         }
         return block;
@@ -63,7 +148,6 @@ export const createBlog = async (req: AuthRequest, res: Response) => {
       uniqueSlug = `${finalSlug}-${counter++}`;
     }
 
-
     const blog = await Blog.create({
       title,
       slug: uniqueSlug,
@@ -76,6 +160,7 @@ export const createBlog = async (req: AuthRequest, res: Response) => {
       faqs,
       estimatedReadTime,
       blocks,
+      images,
       coverImage,
     });
 
@@ -86,15 +171,15 @@ export const createBlog = async (req: AuthRequest, res: Response) => {
   }
 };
 
-
 export const updateBlogById = async (req: AuthRequest, res: Response) => {
   try {
     const authorId = req.user?._id;
     const blogId = req.params.id;
+
     const existingBlog = await Blog.findById(blogId);
     if (!existingBlog) return res.status(404).json({ message: "Blog not found" });
 
-    const { title, summary, estimatedReadTime, slug, metaTitle, metaDescription, } = req.body;
+    const { title, summary, estimatedReadTime, slug, metaTitle, metaDescription } = req.body;
 
     // ✅ Safe JSON parser utility
     const safeParse = <T>(input: any, fallback: T): T => {
@@ -111,37 +196,42 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
     const faqs = safeParse<{ question: string; answer: string }[]>(req.body.faqs, existingBlog.faqs || []);
     let blocks = safeParse<any[]>(req.body.blocks, existingBlog.blocks || []);
 
-    const files = req.files as Express.Multer.File[] | undefined;
-    const dynamicBaseUrl = `${req.protocol}://${req.get("host")}`;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
-    // ✅ Handle cover image update (supports upload.any())
+    // ✅ Convert cover image to buffer (only if new uploaded)
     let coverImage = existingBlog.coverImage;
-    if (files && files.length) {
-      const coverFile = files.find((f) => f.fieldname === "coverImage");
-      if (coverFile) {
-        coverImage = `${dynamicBaseUrl}/uploads/${coverFile.filename}`;
-      }
+    const coverFile = files?.coverImage?.[0];
+    if (coverFile) {
+      coverImage = {
+        data: fs.readFileSync(coverFile.path),
+        contentType: coverFile.mimetype,
+      };
     }
 
-    // ✅ Handle image updates in blocks
-    const imageFiles = files?.filter((f) => f.fieldname === "images") || [];
-    if (blocks.length && imageFiles.length) {
+    // ✅ Convert extra images to buffer array
+    const imageFiles = files?.images || [];
+    const images = imageFiles.map((file) => ({
+      data: fs.readFileSync(file.path),
+      contentType: file.mimetype,
+    }));
+
+    // ✅ Embed images into block content if type = "image"
+    if (blocks.length && images.length) {
       let imageIndex = 0;
       blocks = blocks.map((block) => {
-        if (block.type === "image" && imageIndex < imageFiles.length) {
-          block.data.url = `${dynamicBaseUrl}/uploads/${imageFiles[imageIndex].filename}`;
-          delete block.data.src;
+        if (block.type === "image" && imageIndex < images.length) {
+          block.data.image = images[imageIndex];
           imageIndex++;
         }
         return block;
       });
     }
 
+    // ✅ Handle slug uniqueness (only if changed)
     let finalSlug = slug?.trim()
       ? slugify(slug, { lower: true, strict: true })
       : slugify(title || existingBlog.title, { lower: true, strict: true });
 
-    // Ensure uniqueness only if slug changed
     if (finalSlug !== existingBlog.slug) {
       let uniqueSlug = finalSlug;
       let counter = 1;
@@ -151,7 +241,7 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
       existingBlog.slug = uniqueSlug;
     }
 
-    // ✅ Update fields safely
+    // ✅ Update all other fields safely
     existingBlog.title = title || existingBlog.title;
     existingBlog.summary = summary || existingBlog.summary;
     existingBlog.author = authorId ? new Types.ObjectId(authorId) : existingBlog.author;
@@ -175,6 +265,7 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
 
 export const getAllBlogs = async (req: Request, res: Response) => {
   try {

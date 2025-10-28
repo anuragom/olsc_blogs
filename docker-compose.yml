@@ -1,7 +1,43 @@
+# services:
+#   app:
+#     build: .
+#     container_name: olsc_app
+#     ports:
+#       - "5000:5000"
+#     environment:
+#       - PORT=5000
+#       - NODE_ENV=production
+#       - BASE_URL=http://localhost:5000
+#       - UPLOAD_DIR=uploads
+#       - MONGO_URI=${MONGO_URI}
+#       - JWT_SECRET=${JWT_SECRET}
+#       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}Yellow@wsx89#     
+#       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+#       - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN}
+#     volumes:
+#       - ./uploads:/app/uploads
+#     dns:
+#       - 8.8.8.8
+#       - 8.8.4.4
+#     restart: always
+
+
+
 services:
+  mongo:
+    image: mongo:latest
+    container_name: olsc_mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
   app:
     build: .
     container_name: olsc_app
+    depends_on:
+      - mongo
     ports:
       - "5000:5000"
     environment:
@@ -9,9 +45,8 @@ services:
       - NODE_ENV=production
       - BASE_URL=http://localhost:5000
       - UPLOAD_DIR=uploads
-      # MongoDB connection
-      - MONGO_URI=${MONGO_URI}
-      # JWT secrets
+      - MONGO_URI=mongodb://mongo:27017/olsc_db
+      - BLOG_WRITE_KEY=${BLOG_WRITE_KEY}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
@@ -22,3 +57,7 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     restart: always
+
+volumes:
+  mongo_data:
+

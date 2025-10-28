@@ -7,7 +7,7 @@ export const connectDB = async (uri: string) => {
       maxPoolSize: 10,           
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,    
-      family: 4,                  // Use IPv4, skip IPv6 issues
+      family: 4,              
     });
 
     console.log("✅ MongoDB connected");

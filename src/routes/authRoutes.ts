@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { signup, login, refreshToken, logout, getCurrentUser } from "../controllers/authController";
+import { checkWriteKey } from "@middlewares/checkWriteKey";
 
 const router = Router();
 
-router.post("/signup", signup);
+router.post("/signup",checkWriteKey ,signup);
 router.post("/login", login);
 router.post("/refresh-token", refreshToken);
 router.post("/logout", logout);
