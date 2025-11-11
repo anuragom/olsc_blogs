@@ -12,7 +12,7 @@ router.post(
   authMiddleware,
   upload.fields([
     { name: "coverImage", maxCount: 1 },
-    { name: "images", maxCount: 10 },
+    { name: "images", maxCount: 2 },
   ]),
   blogController.createBlog
 );
@@ -20,7 +20,10 @@ router.post(
 router.put(
   "/:id",
   authMiddleware,
-  upload.any(),
+  upload.fields([
+    { name: "coverImage", maxCount: 1 },
+    { name: "images", maxCount: 2 },
+  ]),
   blogController.updateBlogById
 );
 
