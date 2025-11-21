@@ -123,6 +123,7 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
     // ✅ Convert cover image to buffer (only if new uploaded)
     let coverImage = existingBlog.coverImage;
     const coverFile = files?.coverImage?.[0];
+    console.log("Cover file:", coverFile);
     if (coverFile) {
       coverImage = {
         data: fs.readFileSync(coverFile.path),
@@ -175,6 +176,8 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
     existingBlog.tags = tags;
     existingBlog.categories = categories;
     existingBlog.faqs = faqs;
+
+    console.log("Updated blog data:", coverImage);
 
     await existingBlog.save();
 
