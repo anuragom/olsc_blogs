@@ -165,6 +165,7 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
     }
 
     // ✅ Update all other fields safely
+    // comment2
     existingBlog.title = title || existingBlog.title;
     existingBlog.summary = summary || existingBlog.summary;
     existingBlog.author = authorId ? new Types.ObjectId(authorId) : existingBlog.author;
