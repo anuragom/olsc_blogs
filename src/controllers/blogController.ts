@@ -70,23 +70,24 @@ export const createBlog = async (req: AuthRequest, res: Response) => {
       uniqueSlug = `${finalSlug}-${counter++}`;
     }
 
-    const blog = await Blog.create({
-      title,
-      slug: uniqueSlug,
-      metaTitle,
-      metaDescription,
-      summary,
-      author: authorId,
-      tags,
-      categories,
-      faqs,
-      estimatedReadTime,
-      blocks,
-      images,
-      coverImage,
-    });
+    console.log("created blog data:", coverImage);
+    // const blog = await Blog.create({
+    //   title,
+    //   slug: uniqueSlug,
+    //   metaTitle,
+    //   metaDescription,
+    //   summary,
+    //   author: authorId,
+    //   tags,
+    //   categories,
+    //   faqs,
+    //   estimatedReadTime,
+    //   blocks,
+    //   images,
+    //   coverImage,
+    // });
 
-    return res.status(201).json({ message: "Blog created", blog });
+    return res.status(201).json({ message: "Blog created" });
   } catch (err: any) {
     console.error("❌ Error in createBlog:", err);
     return res.status(500).json({ message: err.message });
@@ -100,6 +101,8 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
 
     const existingBlog = await Blog.findById(blogId);
     if (!existingBlog) return res.status(404).json({ message: "Blog not found" });
+
+    console.log("previous coverimage",existingBlog?.coverImage);
 
     const { title, summary, estimatedReadTime, slug, metaTitle, metaDescription } = req.body;
 
