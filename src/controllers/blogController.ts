@@ -70,26 +70,24 @@ export const createBlog = async (req: AuthRequest, res: Response) => {
       uniqueSlug = `${finalSlug}-${counter++}`;
     }
 
-    console.log("created blog data:", coverImage);
-    // const blog = await Blog.create({
-    //   title,
-    //   slug: uniqueSlug,
-    //   metaTitle,
-    //   metaDescription,
-    //   summary,
-    //   author: authorId,
-    //   tags,
-    //   categories,
-    //   faqs,
-    //   estimatedReadTime,
-    //   blocks,
-    //   images,
-    //   coverImage,
-    // });
+    const blog = await Blog.create({
+      title,
+      slug: uniqueSlug,
+      metaTitle,
+      metaDescription,
+      summary,
+      author: authorId,
+      tags,
+      categories,
+      faqs,
+      estimatedReadTime,
+      blocks,
+      images,
+      coverImage,
+    });
 
-    return res.status(201).json({ message: "Blog created" });
+    return res.status(201).json({ message: "Blog created",blog });
   } catch (err: any) {
-    console.error("❌ Error in createBlog:", err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -102,7 +100,6 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
     const existingBlog = await Blog.findById(blogId);
     if (!existingBlog) return res.status(404).json({ message: "Blog not found" });
 
-    console.log("previous coverimage",existingBlog?.coverImage);
 
     const { title, summary, estimatedReadTime, slug, metaTitle, metaDescription } = req.body;
 
@@ -126,7 +123,6 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
     // ✅ Convert cover image to buffer (only if new uploaded)
     let coverImage = existingBlog.coverImage;
     const coverFile = files?.coverImage?.[0];
-    console.log("Cover file:", coverFile);
     if (coverFile) {
       coverImage = {
         data: fs.readFileSync(coverFile.path),
@@ -181,7 +177,6 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
     existingBlog.categories = categories;
     existingBlog.faqs = faqs;
 
-    console.log("Updated blog data:", coverImage);
 
     await existingBlog.save();
 
@@ -190,7 +185,6 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
       blog: existingBlog,
     });
   } catch (err: any) {
-    console.error("❌ Error updating blog:", err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -222,7 +216,6 @@ export const getAllBlogs = async (req: Request, res: Response) => {
       },
     });
   } catch (err: any) {
-    console.error(err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -234,7 +227,6 @@ export const getBlogById = async (req: Request, res: Response) => {
     if (!blog) return res.status(404).json({ message: "Blog not found" });
     return res.status(200).json(blog);
   } catch (err: any) {
-    console.error(err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -246,7 +238,6 @@ export const deleteBlogById = async (req: Request, res: Response) => {
     if (!deletedBlog) return res.status(404).json({ message: "Blog not found" });
     return res.status(200).json({ message: "Blog deleted successfully" });
   } catch (err: any) {
-    console.error(err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -265,7 +256,6 @@ export const getBlogBySlug = async (req: Request, res: Response) => {
 
     return res.status(200).json(blog);
   } catch (err: any) {
-    console.error("❌ Error fetching blog by slug:", err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -309,7 +299,6 @@ export const searchBlogs = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
