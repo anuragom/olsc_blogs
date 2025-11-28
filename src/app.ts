@@ -105,6 +105,29 @@ const app = express();
 // );
 
 app.use(
+  helmet({
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https:"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+        connectSrc: [
+          "'self'",
+          "https://omlogisticssupplychain.com",
+          "https://www.omlogisticssupplychain.com",
+          "https://blogspaneluat.omlogistics.co.in"
+        ],
+        frameAncestors: ["'self'"],
+      },
+    },
+  })
+);
+
+
+app.use(
   cors({
     origin: [
       "https://omlogisticssupplychain.com",
@@ -126,22 +149,6 @@ app.use(
 
 app.options("*", cors());
 
-app.use(
-  helmet({
-    crossOriginResourcePolicy: false,
-    crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https:"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
-        connectSrc: ["'self'", "https:"],
-        frameAncestors: ["'self'"],
-      },
-    },
-  })
-);
 
 app.use(cookieParser());
 
