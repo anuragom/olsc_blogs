@@ -97,17 +97,49 @@ import { notFound, errorHandler } from "@middlewares/errorHandler";
 
 const app = express();
 
+// app.use(
+//   cors({
+//     origin: ["https://omlogisticssupplychain.com"],
+//     credentials: true,
+//   })
+// );
+
 app.use(
   cors({
-    origin: ["https://omlogisticssupplychain.com"],
+    origin: [
+      "https://omlogisticssupplychain.com",
+      "https://www.omlogisticssupplychain.com",
+      "http://localhost:3000"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
     credentials: true,
   })
 );
+
+// app.use(
+//   helmet({
+//     crossOriginResourcePolicy: false,
+//     crossOriginEmbedderPolicy: false,
+//   })
+// );
+
+app.options("*", cors());
 
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
     crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https:"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+        connectSrc: ["'self'", "https:"],
+        frameAncestors: ["'self'"],
+      },
+    },
   })
 );
 
