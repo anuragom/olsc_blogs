@@ -189,23 +189,60 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
   }
 };
 
+const SELECT_FIELDS = 'title summary coverImage categories slug createdAt';
+// export const getAllBlogs = async (req: Request, res: Response) => {
+//   try {
+//     const page = parseInt(req.query.page as string) || 1;
+//     const limit = parseInt(req.query.limit as string) || 10;
+//     const skip = (page - 1) * limit;
+//     const sortBy = (req.query.sortBy as string) || "createdAt";
+//     const sortOrder = (req.query.sortOrder as string) === "asc" ? 1 : -1;
+
+//     const blogs = await Blog.find()
+//       .sort({ [sortBy]: sortOrder })
+//       .skip(skip)
+//       .limit(limit)
+//       .populate("author")
+//       .lean();
+
+//     const totalBlogs = await Blog.countDocuments();
+//     return res.status(200).json({
+//       data: blogs,
+//       pagination: {
+//         page,
+//         limit,
+//         totalPages: Math.ceil(totalBlogs / limit),
+//         totalBlogs,
+//       },
+//     });
+//   } catch (err: any) {
+//     return res.status(500).json({ message: err.message });
+//   }
+// };
+
+// Get Single Blog
 
 export const getAllBlogs = async (req: Request, res: Response) => {
   try {
+    // --- Pagination Setup (No Change) ---
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
     const sortBy = (req.query.sortBy as string) || "createdAt";
     const sortOrder = (req.query.sortOrder as string) === "asc" ? 1 : -1;
 
+    // --- Optimized Data Fetching (CHANGE IS HERE) ---
     const blogs = await Blog.find()
+      .select(SELECT_FIELDS) // ⭐ ONLY fetch the required fields for the card
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(limit)
-      .populate("author")
+      // .populate("author") // Remove populate if 'author' is not in SELECT_FIELDS
       .lean();
 
     const totalBlogs = await Blog.countDocuments();
+    
+    // --- Send Response (No Change) ---
     return res.status(200).json({
       data: blogs,
       pagination: {
@@ -216,11 +253,11 @@ export const getAllBlogs = async (req: Request, res: Response) => {
       },
     });
   } catch (err: any) {
+    console.error("Error fetching paginated blogs:", err);
     return res.status(500).json({ message: err.message });
   }
 };
 
-// Get Single Blog
 export const getBlogById = async (req: Request, res: Response) => {
   try {
     const blog = await Blog.findById(req.params.id).populate("author");
