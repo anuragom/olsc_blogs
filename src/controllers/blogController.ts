@@ -240,7 +240,10 @@ export const getAllBlogs = async (req: Request, res: Response) => {
     // IDs to exclude
     const excludedIds = [
       "6927dc6bd4f7d81a110cde08",
-      "6927dac2d4f7d81a110cdde3"
+      // "6927dac2d4f7d81a110cdde3",
+      "6927d150d4f7d81a110cdccc",  // the role of 
+      "6927d8eed4f7d81a110cddb5", //pharma
+      "6927d55bd4f7d81a110cdd4b"  // express vs ptl
     ];
 
     // --- Fetch Blogs (EXCLUDING those IDs) ---
