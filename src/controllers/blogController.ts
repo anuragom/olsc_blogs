@@ -189,7 +189,7 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
   }
 };
 
-const SELECT_FIELDS = 'title summary coverImage categories slug createdAt';
+const SELECT_FIELDS = 'title summary coverImage categories slug createdAt author';
 
 export const getAllBlogs = async (req: Request, res: Response) => {
   try {
@@ -206,7 +206,7 @@ export const getAllBlogs = async (req: Request, res: Response) => {
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(limit)
-      // .populate("author") // Remove populate if 'author' is not in SELECT_FIELDS
+      .populate("author")
       .lean();
 
     const totalBlogs = await Blog.countDocuments();
