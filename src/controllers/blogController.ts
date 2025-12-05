@@ -190,37 +190,6 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
 };
 
 const SELECT_FIELDS = 'title summary coverImage categories slug createdAt';
-// export const getAllBlogs = async (req: Request, res: Response) => {
-//   try {
-//     const page = parseInt(req.query.page as string) || 1;
-//     const limit = parseInt(req.query.limit as string) || 10;
-//     const skip = (page - 1) * limit;
-//     const sortBy = (req.query.sortBy as string) || "createdAt";
-//     const sortOrder = (req.query.sortOrder as string) === "asc" ? 1 : -1;
-
-//     const blogs = await Blog.find()
-//       .sort({ [sortBy]: sortOrder })
-//       .skip(skip)
-//       .limit(limit)
-//       .populate("author")
-//       .lean();
-
-//     const totalBlogs = await Blog.countDocuments();
-//     return res.status(200).json({
-//       data: blogs,
-//       pagination: {
-//         page,
-//         limit,
-//         totalPages: Math.ceil(totalBlogs / limit),
-//         totalBlogs,
-//       },
-//     });
-//   } catch (err: any) {
-//     return res.status(500).json({ message: err.message });
-//   }
-// };
-
-// Get Single Blog
 
 export const getAllBlogs = async (req: Request, res: Response) => {
   try {
@@ -254,6 +223,22 @@ export const getAllBlogs = async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error("Error fetching paginated blogs:", err);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const getAllSlugs = async (req: Request, res: Response) => {
+  try {
+
+    const blogs = await Blog.find()
+      .select('slug') 
+      .lean();
+    
+    return res.status(200).json({
+      data: blogs,
+    });
+  } catch (err: any) {
+    console.error("Error fetching  slugs:", err);
     return res.status(500).json({ message: err.message });
   }
 };

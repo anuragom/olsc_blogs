@@ -30,6 +30,7 @@ router.put(
 router.get("/search", blogController.searchBlogs);
 router.get("/slug/:slug", blogController.getBlogBySlug);
 router.get("/", blogController.getAllBlogs);
+router.get("/slugs", blogController.getAllSlugs);
 router.get("/:id", blogController.getBlogById);
 router.delete("/:id", authMiddleware, blogController.deleteBlogById);
 
