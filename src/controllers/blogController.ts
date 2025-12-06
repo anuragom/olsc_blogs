@@ -189,94 +189,94 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// const SELECT_FIELDS = 'title summary coverImage categories slug createdAt author';
-// export const getAllBlogs = async (req: Request, res: Response) => {
-//   try {
-//     // --- Pagination Setup (No Change) ---
-//     const page = parseInt(req.query.page as string) || 1;
-//     const limit = parseInt(req.query.limit as string) || 10;
-//     const skip = (page - 1) * limit;
-//     const sortBy = (req.query.sortBy as string) || "createdAt";
-//     const sortOrder = (req.query.sortOrder as string) === "asc" ? 1 : -1;
-
-//     // --- Optimized Data Fetching (CHANGE IS HERE) ---
-//     const blogs = await Blog.find()
-//       .select(SELECT_FIELDS) // ⭐ ONLY fetch the required fields for the card
-//       .sort({ [sortBy]: sortOrder })
-//       .skip(skip)
-//       .limit(limit)
-//       .populate("author")
-//       .lean();
-
-//     const totalBlogs = await Blog.countDocuments();
-    
-//     // --- Send Response (No Change) ---
-//     return res.status(200).json({
-//       data: blogs,
-//       pagination: {
-//         page,
-//         limit,
-//         totalPages: Math.ceil(totalBlogs / limit),
-//         totalBlogs,
-//       },
-//     });
-//   } catch (err: any) {
-//     console.error("Error fetching paginated blogs:", err);
-//     return res.status(500).json({ message: err.message });
-//   }
-// };
-
 const SELECT_FIELDS = 'title summary coverImage categories slug createdAt author';
-
 export const getAllBlogs = async (req: Request, res: Response) => {
   try {
-    // --- Pagination Setup ---
+    // --- Pagination Setup (No Change) ---
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
     const sortBy = (req.query.sortBy as string) || "createdAt";
     const sortOrder = (req.query.sortOrder as string) === "asc" ? 1 : -1;
 
-    // IDs to exclude
-    const excludedIds = [
-      "6927dc6bd4f7d81a110cde08",
-      // "6927dac2d4f7d81a110cdde3",
-      "6927d150d4f7d81a110cdccc",  // the role of 
-      "6927d8eed4f7d81a110cddb5", //pharma
-      "6927d55bd4f7d81a110cdd4b"  // express vs ptl
-    ];
-
-    // --- Fetch Blogs (EXCLUDING those IDs) ---
-    const blogs = await Blog.find({
-      _id: { $nin: excludedIds }
-    })
-      .select(SELECT_FIELDS)
+    // --- Optimized Data Fetching (CHANGE IS HERE) ---
+    const blogs = await Blog.find()
+      .select(SELECT_FIELDS) // ⭐ ONLY fetch the required fields for the card
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(limit)
       .populate("author")
       .lean();
 
-    // Count only non-excluded blogs
-    const totalBlogs = await Blog.countDocuments({
-      _id: { $nin: excludedIds }
-    });
-
-    // --- Send Response ---
+    const totalBlogs = await Blog.countDocuments();
+    
+    // --- Send Response (No Change) ---
     return res.status(200).json({
       data: blogs,
       pagination: {
         page,
         limit,
         totalPages: Math.ceil(totalBlogs / limit),
-        totalBlogs
-      }
+        totalBlogs,
+      },
     });
   } catch (err: any) {
     console.error("Error fetching paginated blogs:", err);
     return res.status(500).json({ message: err.message });
   }
 };
+
+// const SELECT_FIELDS = 'title summary coverImage categories slug createdAt author';
+
+// export const getAllBlogs = async (req: Request, res: Response) => {
+//   try {
+//     // --- Pagination Setup ---
+//     const page = parseInt(req.query.page as string) || 1;
+//     const limit = parseInt(req.query.limit as string) || 10;
+//     const skip = (page - 1) * limit;
+//     const sortBy = (req.query.sortBy as string) || "createdAt";
+//     const sortOrder = (req.query.sortOrder as string) === "asc" ? 1 : -1;
+
+//     // IDs to exclude
+//     const excludedIds = [
+//       "6927dc6bd4f7d81a110cde08",
+//       "6927dac2d4f7d81a110cdde3",
+//       // "6927d150d4f7d81a110cdccc",  // the role of 
+//       "6927d8eed4f7d81a110cddb5", //pharma
+//       "6927d55bd4f7d81a110cdd4b"  // express vs ptl
+//     ];
+
+//     // --- Fetch Blogs (EXCLUDING those IDs) ---
+//     const blogs = await Blog.find({
+//       _id: { $nin: excludedIds }
+//     })
+//       .select(SELECT_FIELDS)
+//       .sort({ [sortBy]: sortOrder })
+//       .skip(skip)
+//       .limit(limit)
+//       .populate("author")
+//       .lean();
+
+//     // Count only non-excluded blogs
+//     const totalBlogs = await Blog.countDocuments({
+//       _id: { $nin: excludedIds }
+//     });
+
+//     // --- Send Response ---
+//     return res.status(200).json({
+//       data: blogs,
+//       pagination: {
+//         page,
+//         limit,
+//         totalPages: Math.ceil(totalBlogs / limit),
+//         totalBlogs
+//       }
+//     });
+//   } catch (err: any) {
+//     console.error("Error fetching paginated blogs:", err);
+//     return res.status(500).json({ message: err.message });
+//   }
+// };
 
 
 export const getAllSlugs = async (req: Request, res: Response) => {
