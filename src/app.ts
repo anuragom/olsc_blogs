@@ -134,7 +134,7 @@ app.use(
       "https://www.omlogisticssupplychain.com",
       "http://localhost:3000"
     ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH","OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Accept"],
     credentials: true,
   })

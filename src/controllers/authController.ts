@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import User from "../models/User";
-import jwt, { Secret, SignOptions } from "jsonwebtoken";
+import jwt, { Secret } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import {
   JWT_SECRET,
@@ -9,15 +9,15 @@ import {
   JWT_REFRESH_EXPIRES_IN,
 } from "../config/config";
 
-const generateTokens = (userId: string) => {
+const generateTokens = (userId: string,role: string) => {
   const accessToken = jwt.sign(
-    { userId },
+    { userId,role },
     JWT_SECRET as string,
     { expiresIn: JWT_EXPIRES_IN as unknown as jwt.SignOptions['expiresIn'] }
   );
 
   const refreshToken = jwt.sign(
-    { userId },
+    { userId,role },
     JWT_REFRESH_SECRET as string,
     { expiresIn: JWT_REFRESH_EXPIRES_IN as unknown as jwt.SignOptions['expiresIn'] }
   );
@@ -41,8 +41,6 @@ const setTokensAsCookies = (res: Response, accessToken: string, refreshToken: st
   });
 };
 
-
-
 export const signup = async (req: Request, res: Response) => {
   try {
     const { userName, fullName, password, employeeId } = req.body;
@@ -62,7 +60,7 @@ export const signup = async (req: Request, res: Response) => {
 
     await user.save();
 
-    const { accessToken, refreshToken } = generateTokens(user._id.toString());
+    const { accessToken, refreshToken } = generateTokens(user._id.toString(),'sanjvikAdmin');
 
     user.refreshToken = refreshToken;
     await user.save();
@@ -91,7 +89,7 @@ export const login = async (req: Request, res: Response) => {
     if (!isMatch)
       return res.status(400).json({ message: "Invalid credentials" });
 
-    const { accessToken, refreshToken } = generateTokens(user._id.toString());
+    const { accessToken, refreshToken } = generateTokens(user._id.toString(),user.role);
 
     user.refreshToken = refreshToken;
     await user.save();
@@ -107,45 +105,6 @@ export const login = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
-// export const refreshToken = async (req: Request, res: Response) => {
-//   try {
-//     // const { refreshToken } = req.body;
-//     const refreshToken = req.cookies?.refreshToken;
-//     if (!refreshToken)
-//       return res
-//         .status(401)
-//         .json({ message: "Refresh token is required" });
-
-//     const decoded = jwt.verify(
-//       refreshToken,
-//       JWT_REFRESH_SECRET as Secret
-//     ) as jwt.JwtPayload;
-
-//     const user = await User.findById(decoded.userId);
-//     if (!user || user.refreshToken !== refreshToken) {
-//       return res.status(403).json({ message: "Invalid refresh token" });
-//     }
-
-//     const { accessToken, refreshToken: newRefreshToken } = generateTokens(
-//       user._id.toString()
-//     );
-
-//     user.refreshToken = newRefreshToken;
-//     await user.save();
-
-//     setTokensAsCookies(res, accessToken, refreshToken);
-
-//     res.status(200).json({
-//       message: "Token refreshed successfully",
-//       data: { accessToken, refreshToken: newRefreshToken },
-//     });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(403).json({ message: "Invalid or expired refresh token" });
-//   }
-// };
-
 
 export const refreshToken = async (req: Request, res: Response) => {
   try {
@@ -164,13 +123,12 @@ export const refreshToken = async (req: Request, res: Response) => {
     }
 
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(
-      user._id.toString()
+      user._id.toString(),user.role
     );
 
     user.refreshToken = newRefreshToken;
     await user.save();
 
-    // ✅ Important fix: set newRefreshToken, not old refreshToken
     setTokensAsCookies(res, accessToken, newRefreshToken);
 
     res.status(200).json({
@@ -183,10 +141,8 @@ export const refreshToken = async (req: Request, res: Response) => {
   }
 };
 
-
 export const logout = async (req: Request, res: Response) => {
   try {
-    // const { refreshToken } = req.body;\
     const refreshToken = req.cookies?.refreshToken;
     if (!refreshToken)
       return res.status(400).json({ message: "Refresh token required" });
@@ -206,7 +162,6 @@ export const logout = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 export const getCurrentUser = async (req: Request, res: Response) => {
   try {

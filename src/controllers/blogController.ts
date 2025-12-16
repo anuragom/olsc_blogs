@@ -12,7 +12,7 @@ export const createBlog = async (req: AuthRequest, res: Response) => {
   try {
     const authorId = req.user?._id;
 
-    const { title, summary, estimatedReadTime, slug, metaTitle, metaDescription } = req.body;
+    const { title, summary, estimatedReadTime, slug, metaTitle, metaDescription,website } = req.body;
     if (!title) return res.status(400).json({ message: "Title is required" });
 
     const safeParse = <T>(input: any, fallback: T): T => {
@@ -84,6 +84,7 @@ export const createBlog = async (req: AuthRequest, res: Response) => {
       blocks,
       images,
       coverImage,
+      website
     });
 
     return res.status(201).json({ message: "Blog created",blog });
@@ -103,7 +104,6 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
 
     const { title, summary, estimatedReadTime, slug, metaTitle, metaDescription } = req.body;
 
-    // ✅ Safe JSON parser utility
     const safeParse = <T>(input: any, fallback: T): T => {
       if (!input) return fallback;
       try {
@@ -120,7 +120,6 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
 
     const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
-    // ✅ Convert cover image to buffer (only if new uploaded)
     let coverImage = existingBlog.coverImage;
     const coverFile = files?.coverImage?.[0];
     if (coverFile) {
@@ -130,14 +129,12 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
       };
     }
 
-    // ✅ Convert extra images to buffer array
     const imageFiles = files?.images || [];
     const images = imageFiles.map((file) => ({
       data: fs.readFileSync(file.path),
       contentType: file.mimetype,
     }));
 
-    // ✅ Embed images into block content if type = "image"
     if (blocks.length && images.length) {
       let imageIndex = 0;
       blocks = blocks.map((block) => {
@@ -149,7 +146,6 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // ✅ Handle slug uniqueness (only if changed)
     let finalSlug = slug?.trim()
       ? slugify(slug, { lower: true, strict: true })
       : slugify(title || existingBlog.title, { lower: true, strict: true });
@@ -163,8 +159,6 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
       existingBlog.slug = uniqueSlug;
     }
 
-    // ✅ Update all other fields safely
-    // comment2
     existingBlog.title = title || existingBlog.title;
     existingBlog.summary = summary || existingBlog.summary;
     existingBlog.author = authorId ? new Types.ObjectId(authorId) : existingBlog.author;
@@ -189,28 +183,83 @@ export const updateBlogById = async (req: AuthRequest, res: Response) => {
   }
 };
 
-const SELECT_FIELDS = 'title summary coverImage categories slug createdAt author';
+// const SELECT_FIELDS = 'title summary coverImage categories slug createdAt author website isPublished';
+// export const getAllBlogs = async (req: Request, res: Response) => {
+//   try {
+//     const page = parseInt(req.query.page as string) || 1;
+//     const limit = parseInt(req.query.limit as string) || 10;
+//     const website = req.query.website as string || "sanjvik";
+//     const skip = (page - 1) * limit;
+//     const sortBy = (req.query.sortBy as string) || "createdAt";
+//     const sortOrder = (req.query.sortOrder as string) === "asc" ? 1 : -1;
+
+//     const query: any = {};
+    
+//     if (website && (website === 'omlogistics' || website === 'sanjvik')) {
+//       query.website = website;
+//     }
+
+//     const blogs = await Blog.find(query)
+//       .select(SELECT_FIELDS)
+//       .sort({ [sortBy]: sortOrder })
+//       .skip(skip)
+//       .limit(limit)
+//       .populate("author")
+//       .lean();
+
+//     const totalBlogs = await Blog.countDocuments();
+    
+//     return res.status(200).json({
+//       data: blogs,
+//       pagination: {
+//         page,
+//         limit,
+//         totalPages: Math.ceil(totalBlogs / limit),
+//         totalBlogs,
+//       },
+//     });
+//   } catch (err: any) {
+//     console.error("Error fetching paginated blogs:", err);
+//     return res.status(500).json({ message: err.message });
+//   }
+// };
+
+const SELECT_FIELDS = 'title summary coverImage categories slug createdAt author website isPublished';
+
 export const getAllBlogs = async (req: Request, res: Response) => {
   try {
-    // --- Pagination Setup (No Change) ---
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const website = req.query.website as string || "sanjvik";
+    const statusFilter = req.query.status as string; 
     const skip = (page - 1) * limit;
     const sortBy = (req.query.sortBy as string) || "createdAt";
     const sortOrder = (req.query.sortOrder as string) === "asc" ? 1 : -1;
 
-    // --- Optimized Data Fetching (CHANGE IS HERE) ---
-    const blogs = await Blog.find()
-      .select(SELECT_FIELDS) // ⭐ ONLY fetch the required fields for the card
+    const query: any = {};
+    
+    if (website && (website === 'omlogistics' || website === 'sanjvik')) {
+      query.website = website;
+    }
+
+    if (statusFilter) {
+      if (statusFilter === 'published') {
+        query.isPublished = true;
+      } else if (statusFilter === 'draft') {
+        query.isPublished = false;
+      }
+    }
+
+    const blogs = await Blog.find(query) 
+      .select(SELECT_FIELDS)
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(limit)
       .populate("author")
       .lean();
 
-    const totalBlogs = await Blog.countDocuments();
+    const totalBlogs = await Blog.countDocuments(query); 
     
-    // --- Send Response (No Change) ---
     return res.status(200).json({
       data: blogs,
       pagination: {
@@ -225,59 +274,6 @@ export const getAllBlogs = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
-// const SELECT_FIELDS = 'title summary coverImage categories slug createdAt author';
-
-// export const getAllBlogs = async (req: Request, res: Response) => {
-//   try {
-//     // --- Pagination Setup ---
-//     const page = parseInt(req.query.page as string) || 1;
-//     const limit = parseInt(req.query.limit as string) || 10;
-//     const skip = (page - 1) * limit;
-//     const sortBy = (req.query.sortBy as string) || "createdAt";
-//     const sortOrder = (req.query.sortOrder as string) === "asc" ? 1 : -1;
-
-//     // IDs to exclude
-//     const excludedIds = [
-//       "6927dc6bd4f7d81a110cde08",
-//       "6927dac2d4f7d81a110cdde3",
-//       // "6927d150d4f7d81a110cdccc",  // the role of 
-//       "6927d8eed4f7d81a110cddb5", //pharma
-//       "6927d55bd4f7d81a110cdd4b"  // express vs ptl
-//     ];
-
-//     // --- Fetch Blogs (EXCLUDING those IDs) ---
-//     const blogs = await Blog.find({
-//       _id: { $nin: excludedIds }
-//     })
-//       .select(SELECT_FIELDS)
-//       .sort({ [sortBy]: sortOrder })
-//       .skip(skip)
-//       .limit(limit)
-//       .populate("author")
-//       .lean();
-
-//     // Count only non-excluded blogs
-//     const totalBlogs = await Blog.countDocuments({
-//       _id: { $nin: excludedIds }
-//     });
-
-//     // --- Send Response ---
-//     return res.status(200).json({
-//       data: blogs,
-//       pagination: {
-//         page,
-//         limit,
-//         totalPages: Math.ceil(totalBlogs / limit),
-//         totalBlogs
-//       }
-//     });
-//   } catch (err: any) {
-//     console.error("Error fetching paginated blogs:", err);
-//     return res.status(500).json({ message: err.message });
-//   }
-// };
-
 
 export const getAllSlugs = async (req: Request, res: Response) => {
   try {
@@ -305,7 +301,6 @@ export const getBlogById = async (req: Request, res: Response) => {
   }
 };
 
-// Delete Blog
 export const deleteBlogById = async (req: Request, res: Response) => {
   try {
     const deletedBlog = await Blog.findByIdAndDelete(req.params.id);
@@ -316,7 +311,6 @@ export const deleteBlogById = async (req: Request, res: Response) => {
   }
 };
 
-// get Blog by slug
 export const getBlogBySlug = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
@@ -334,34 +328,43 @@ export const getBlogBySlug = async (req: Request, res: Response) => {
   }
 };
 
-
 export const searchBlogs = async (req: Request, res: Response) => {
   try {
     const q = (req.query.q as string) || "";
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const website = req.query.website as string;
 
-    const filter: any = {
+    const searchConditions = {
       $or: [
-        { title: { $regex: q, $options: "i" } },
-        { "author.fullName": { $regex: q, $options: "i" } }, // after populating author
-        { categories: { $in: [new RegExp(q, "i")] } }, // match array elements
-      ],
-    };
-
-    const totalBlogs = await Blog.countDocuments(filter);
-
-    const blogs = await Blog.find()
-      .populate("author") // populate author document
-      .or([
         { title: { $regex: q, $options: "i" } },
         { "author.fullName": { $regex: q, $options: "i" } },
         { categories: { $in: [new RegExp(q, "i")] } },
-      ])
+      ],
+    };
+
+    const websiteFilter: any = {};
+    if (website && (website === 'omlogistics' || website === 'sanjvik')) {
+      websiteFilter.website = website;
+    }
+    
+    const finalFilter = {
+      $and: [
+        websiteFilter,
+        searchConditions, 
+      ]
+    };
+    
+    
+    // Total Count
+    const totalBlogs = await Blog.countDocuments(finalFilter); 
+
+    // Fetch Blogs
+    const blogs = await Blog.find(finalFilter) 
+      .populate("author") 
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 });
-
 
     res.json({
       data: blogs,
@@ -373,6 +376,37 @@ export const searchBlogs = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
+    console.error("Error searching blogs:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const toggleBlogPublishStatus = async (req: Request, res: Response) => {
+  try {
+    const blogId = req.params.id;
+    const updatedBlog = await Blog.findByIdAndUpdate(
+      blogId,
+      [
+        {
+          $set: {
+            isPublished: { $not: "$isPublished" } 
+          }
+        }
+      ],
+      { new: true }
+    ).lean();
+
+    if (!updatedBlog) {
+      return res.status(404).json({ message: "Blog not found" });
+    }
+    const statusMessage = updatedBlog.isPublished ? "published" : "unpublished";
+
+    return res.status(200).json({
+      message: `Blog successfully ${statusMessage}`,
+      blog: updatedBlog,
+    });
+  } catch (err: any) {
+    console.error("Error toggling blog status:", err);
+    return res.status(500).json({ message: err.message });
   }
 };

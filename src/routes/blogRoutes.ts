@@ -1,7 +1,6 @@
 import { Router } from "express";
 import * as blogController from "@controllers/blogController";
 import upload from "@middlewares/upload";
-import { checkWriteKey } from "@middlewares/checkWriteKey";
 import { authMiddleware } from "@middlewares/auth";
 import Blog from "@models/Blog";
 
@@ -42,7 +41,6 @@ router.get("/:id/cover", async (req, res) => {
   res.send(blog.coverImage.data);
 });
 
-// Get an image from blocks (by index)
 router.get("/:id/image/:index", async (req, res) => {
   const blog = await Blog.findById(req.params.id);
   const image = blog?.images?.[parseInt(req.params.index)];
@@ -52,5 +50,10 @@ router.get("/:id/image/:index", async (req, res) => {
   res.send(image.data);
 });
 
+router.patch(
+  "/:id/toggle-publish",
+  authMiddleware,
+  blogController.toggleBlogPublishStatus
+);
 
 export default router;
