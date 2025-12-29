@@ -118,7 +118,9 @@ app.use(
           "'self'",
           "https://omlogisticssupplychain.com",
           "https://www.omlogisticssupplychain.com",
-          "https://blogspaneluat.omlogistics.co.in"
+          "https://blogspaneluat.omlogistics.co.in",
+          "http://localhost:5173",
+          "https://sanjvik.com",
         ],
         frameAncestors: ["'self'"],
       },
@@ -132,7 +134,10 @@ app.use(
     origin: [
       "https://omlogisticssupplychain.com",
       "https://www.omlogisticssupplychain.com",
-      "http://localhost:3000"
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "https://sanjvik.com"
+
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH","OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Accept"],
