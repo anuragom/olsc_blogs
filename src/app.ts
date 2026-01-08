@@ -93,6 +93,7 @@ import "express-async-errors";
 
 import blogRoutes from "@routes/blogRoutes";
 import authRoutes from "@routes/authRoutes";
+import formRoutes from "@routes/formRoutes";
 import { notFound, errorHandler } from "@middlewares/errorHandler";
 
 const app = express();
@@ -196,6 +197,7 @@ app.use(
 // ✅ API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/blogs", blogRoutes);
+app.use("/api/forms", formRoutes);
 
 // ✅ Health check route
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
