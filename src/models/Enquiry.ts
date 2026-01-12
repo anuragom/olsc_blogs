@@ -23,7 +23,7 @@ const enquirySchema = new Schema<IEnquiry>(
     message: { type: String, required: true },
     serviceName: { 
       type: String, 
-      enum: ['rail_logistics', 'air_logistics', 'warehousing', '3PL', 'speed_trucking','FTL','PTL'],
+      enum: ['rail_logistics', 'air_logistics', 'warehousing', '3PL', 'speed_trucking','FTL','PTL','contact_us'],
       required: true 
     },
     status: {

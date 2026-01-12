@@ -2,9 +2,18 @@ import { Request, Response } from "express";
 import Enquiry from "@models/Enquiry";
 import { sendEmail } from "../utils/sendEmail";
 import Application from "@models/Application";
+import CareerApplication from "@models/CareerApplication";
+import InstituteApplication from "@models/InstituteApplication";
+import Job from "@models/Job";
 import { compressPDF } from "../utils/pdfService";
 import path from "path";
 import fs from "fs";
+import mongoose from "mongoose";
+
+const SELECT_FIELDS_ENQUIRY = 'fullName email phone serviceName status createdAt message';
+const SELECT_FIELDS_APPLICATION = 'type email firstName lastName contactNumber status createdAt applicationFileUrl desiredLocation city state pincode';
+const SELECT_FIELDS_CAREER_APPLICATION = 'firstName lastName email position totalExperience status createdAt jobId resumeUrl';
+const SELECT_FIELDS_JOB = 'title location jobType company profile experienceRequired ctc vacancies qualification description responsibilities isActive createdAt';
 
 export const createEnquiry = async (req: Request, res: Response) => {
   try {
@@ -90,6 +99,7 @@ export const getAllEnquiries = async (req: Request, res: Response) => {
     }
 
     const enquiries = await Enquiry.find(query)
+      .select(SELECT_FIELDS_ENQUIRY)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -158,7 +168,6 @@ export const deleteEnquiry = async (req: Request, res: Response) => {
   }
 };
 
-
 // interface S3File extends Express.Multer.File {
 //   location: string;
 // }
@@ -219,8 +228,6 @@ export const deleteEnquiry = async (req: Request, res: Response) => {
 //     return res.status(500).json({ message: error.message });
 //   }
 // };
-
-
 
 // export const submitApplication = async (req: Request, res: Response) => {
 //   try {
@@ -319,7 +326,6 @@ export const deleteEnquiry = async (req: Request, res: Response) => {
 //   }
 // };
 
-
 export const submitApplication = async (req: Request, res: Response) => {
   try {
     const file = req.file;
@@ -386,7 +392,6 @@ export const submitApplication = async (req: Request, res: Response) => {
     return res.status(500).json({ message: error.message });
   }
 };
-
 const generateProfessionalEmail = (data: any, appTitle: string) => {
     return `
       <div style="font-family: sans-serif; color: #333; max-width: 600px; border-top: 4px solid #0056b3;">
@@ -403,8 +408,6 @@ const generateProfessionalEmail = (data: any, appTitle: string) => {
       </div>
     `;
 };
-
-
 export const getAllApplications = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -434,6 +437,7 @@ export const getAllApplications = async (req: Request, res: Response) => {
     }
 
     const applications = await Application.find(query)
+      .select(SELECT_FIELDS_APPLICATION)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -454,7 +458,6 @@ export const getAllApplications = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
 export const getApplicationById = async (req: Request, res: Response) => {
   try {
     const application = await Application.findById(req.params.id);
@@ -464,7 +467,6 @@ export const getApplicationById = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
 export const updateApplicationStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -488,13 +490,11 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
 export const deleteApplication = async (req: Request, res: Response) => {
   try {
     const application = await Application.findById(req.params.id);
     if (!application) return res.status(404).json({ message: "Application not found" });
 
-    // Remove file from disk
     const filePath = path.join(process.cwd(), application.applicationFileUrl);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
@@ -506,8 +506,6 @@ export const deleteApplication = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
-
 export const downloadApplicationFile = async (req: Request, res: Response) => {
     try {
         const application = await Application.findById(req.params.id);
@@ -530,4 +528,299 @@ export const downloadApplicationFile = async (req: Request, res: Response) => {
     } catch (err: any) {
         return res.status(500).json({ message: err.message });
     }
+};
+export const submitCareerApplication = async (req: Request, res: Response) => {
+  try {
+    const { 
+      jobId,
+      firstName, lastName, mobile, email, employeeStatus, 
+      position, currentCTC, expectedCTC, totalExperience, 
+      immediateStart, relocation 
+    } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Resume file is required" });
+    }
+
+    const newApplication = await CareerApplication.create({
+      jobId: jobId || null,
+      firstName,
+      lastName,
+      mobile,
+      email,
+      employeeStatus,
+      position,
+      currentCTC,
+      expectedCTC,
+      totalExperience,
+      immediateStart,
+      relocation,
+      resumeUrl: req.file.filename 
+    });
+
+    const emailHtml = `
+      <h3>New Career Application Received</h3>
+      <p><b>Position:</b> ${position}</p>
+      <p><b>Candidate:</b> ${firstName} ${lastName}</p>
+      <p><b>Email:</b> ${email}</p>
+      <p><b>Experience:</b> ${totalExperience} Years</p>
+      <p><b>Current/Expected CTC:</b> ${currentCTC} / ${expectedCTC}</p>
+      <p><b>Mobile:</b> ${mobile}</p>
+    `;
+
+    sendEmail({
+      to: "raghav.raj@olsc.in", 
+      subject: `New Job Application: ${position} - ${firstName}`,
+      html: emailHtml,
+      attachments: [{
+        filename: req.file.originalname,
+        path: req.file.path
+      }]
+    }).catch(err => console.error("Career Email Error:", err));
+
+    return res.status(201).json({
+      success: true,
+      message: "Application submitted successfully",
+      applicationId: newApplication._id
+    });
+  } catch (err: any) {
+    console.error("Career Submission Error:", err);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+export const getAllCareerApplications = async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const { status, position, search, startDate, endDate } = req.query;
+
+    const query: any = {};
+    if (status) query.status = status;
+    if (position) query.position = position;
+
+    if (search) {
+      const searchRegex = { $regex: search, $options: "i" };
+      
+      // Define search conditions for String fields
+      const orConditions: any[] = [
+        { firstName: searchRegex },
+        { email: searchRegex },
+        { mobile: searchRegex },
+        { position: searchRegex } // Added position search as well
+      ];
+
+      // Only add jobId to search if the 'search' string is a valid ObjectId
+      if (mongoose.Types.ObjectId.isValid(search as string)) {
+        orConditions.push({ jobId: search });
+      }
+
+      query.$or = orConditions;
+    }
+
+    if (startDate) {
+      const start = new Date(startDate as string);
+      const end = endDate ? new Date(endDate as string) : new Date(startDate as string);
+      end.setHours(23, 59, 59, 999);
+      query.createdAt = { $gte: start, $lte: end };
+    }
+
+    const applications = await CareerApplication.find(query)
+      .populate('jobId', 'title')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const total = await CareerApplication.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      data: applications,
+      pagination: { 
+        total, 
+        page, 
+        limit, 
+        totalPages: Math.ceil(total / limit) 
+      }
+    });
+  } catch (err: any) {
+    console.error("Backend Filter Error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+export const getCareerApplicationById = async (req: Request, res: Response) => {
+  try {
+    const application = await CareerApplication.findById(req.params.id);
+    if (!application) return res.status(404).json({ message: "Application not found" });
+    return res.status(200).json(application);
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+export const downloadCareerApplicationFile = async (req: Request, res: Response) => {
+  try {
+    const app = await CareerApplication.findById(req.params.id);
+    if (!app) return res.status(404).json({ message: "Application not found" });
+
+    const filePath = path.join(process.cwd(), "uploads", app.resumeUrl);
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "File not found on server" });
+    }
+    
+    res.download(filePath, `${app.firstName}_${app.lastName}_Resume.pdf`);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+export const updateCareerApplicationStatus = async (req: Request, res: Response) => {
+  try {
+    const updated = await CareerApplication.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true }
+    );
+    res.status(200).json({ success: true, data: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+export const deleteCareerApplication = async (req: Request, res: Response) => {
+  try {
+    const app = await CareerApplication.findById(req.params.id);
+    if (app) {
+      const filePath = path.join(process.cwd(), "uploads", app.resumeUrl);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath); // Delete local file
+      await app.deleteOne();
+    }
+    res.status(200).json({ success: true, message: "Deleted successfully" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+export const postJob = async (req: Request, res: Response) => {
+  try {
+    const jobData = req.body;
+    const newJob = await Job.create(jobData);
+    res.status(201).json({ success: true, data: newJob });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+export const getJobs = async (req: Request, res: Response) => {
+  try {
+    const jobs = await Job.find({ isActive: true }).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: jobs });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+export const getJobById = async (req: Request, res: Response) => {
+  try {
+    const job = await Job.findById(req.params.id);
+    if (!job) return res.status(404).json({ message: "Job not found" });
+    return res.status(200).json(job);
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const submitInstituteApplication = async (req: Request, res: Response) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ message: "Marksheet is required." });
+
+    const application = await InstituteApplication.create({
+      ...req.body,
+      marksheetUrl: `/uploads/applications/${file.filename}`
+    });
+
+    res.status(201).json({ success: true, message: "Application submitted successfully" });
+
+    (async () => {
+      try {
+        // A. Compress the PDF
+        const compressedPath = await compressPDF(file.path);
+        const newFilename = path.basename(compressedPath);
+
+        // B. Update DB with new compressed filename
+        await Application.findByIdAndUpdate(application._id, {
+          applicationFileUrl: `/uploads/applications/${newFilename}`
+        });
+
+        // C. Prepare and Send Email
+        const emailHtml = generateProfessionalEmail(req.body, "Institute Admission");
+
+        // await sendEmail({
+        //   to: "raghav.raj@olsc.in",
+        //   subject: `[New Admission] ${req.body.fullName}`,
+        //   html: emailHtml,
+        //   attachments: [{
+        //     filename: req.file!.originalname,
+        //     path: compressedPath 
+        //   }]
+        // });
+        
+        console.log(`Background processing finished for application: ${application._id}`);
+      } catch (bgError) {
+        console.error("Background Processing Error:", bgError);
+      }
+    })();
+
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getAllInstituteApplications = async (req: Request, res: Response) => {
+  try {
+    const { page = 1, limit = 10, search, status, startDate, endDate } = req.query;
+    const query: any = {};
+
+    if (status) query.status = status;
+    if (search) {
+      query.$or = [
+        { fullName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { contactNo: { $regex: search, $options: "i" } }
+      ];
+    }
+    if (startDate) {
+      query.createdAt = { $gte: new Date(startDate as string), $lte: endDate ? new Date(endDate as string) : new Date() };
+    }
+
+    const data = await InstituteApplication.find(query)
+      .sort({ createdAt: -1 })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
+
+    const total = await InstituteApplication.countDocuments(query);
+    res.status(200).json({ data, pagination: { total, page: Number(page), totalPages: Math.ceil(total / Number(limit)) } });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getInstituteApplicationById = async (req: Request, res: Response) => {
+  try {
+    const app = await InstituteApplication.findById(req.params.id);
+    if (!app) return res.status(404).json({ message: "Not found" });
+    res.status(200).json(app);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateInstituteStatus = async (req: Request, res: Response) => {
+    try {
+      const updated = await InstituteApplication.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
+      res.status(200).json({ success: true, data: updated });
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+};
+
+export const downloadInstituteFile = async (req: Request, res: Response) => {
+  try {
+    const app = await InstituteApplication.findById(req.params.id);
+    if (!app) return res.status(404).send("File not found");
+    const filePath = path.join(process.cwd(), "uploads", app.marksheetUrl);
+    res.download(filePath);
+  } catch (err: any) { res.status(500).send(err.message); }
 };
