@@ -1,0 +1,38 @@
+import { Router } from "express";
+import * as formController from "@controllers/formController";
+import { uploadLocal } from "@middlewares/upload";
+
+const router = Router();
+
+router.post("/apply", uploadLocal.single("file"), formController.submitApplication);
+router.get("/apply", formController.getAllApplications);
+router.get("/apply/:id", formController.getApplicationById);
+router.get("/apply/:id/download", formController.downloadApplicationFile);
+router.delete("/apply/:id", formController.deleteApplication);
+router.patch("/apply/:id/status", formController.updateApplicationStatus);
+
+router.post("/careers", uploadLocal.single("file"), formController.submitCareerApplication);
+router.get("/careers", formController.getAllCareerApplications);
+router.get("/careers/:id", formController.getCareerApplicationById);
+router.get("/careers/:id/download", formController.downloadCareerApplicationFile);
+router.delete("/careers/:id", formController.deleteCareerApplication);
+router.patch("/careers/:id/status", formController.updateCareerApplicationStatus);
+
+router.post("/jobs", uploadLocal.single("file"), formController.postJob);
+router.get("/jobs", formController.getJobs);
+router.get("/jobs/:id", formController.getJobById);
+
+router.post("/institute", uploadLocal.single("file"), formController.submitInstituteApplication);
+router.get("/institute", formController.getAllInstituteApplications);
+router.get("/institute/:id", formController.getInstituteApplicationById);
+router.get("/institute/:id/download", formController.downloadInstituteFile);
+router.patch("/institute/:id/status", formController.updateInstituteStatus);
+
+router.post("/", formController.createEnquiry);
+router.get("/", formController.getAllEnquiries);
+
+router.get("/:id", formController.getEnquiryById);
+router.delete("/:id", formController.deleteEnquiry);
+router.patch("/:id/status", formController.updateEnquiryStatus);
+
+export default router;

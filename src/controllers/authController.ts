@@ -9,15 +9,15 @@ import {
   JWT_REFRESH_EXPIRES_IN,
 } from "../config/config";
 
-const generateTokens = (userId: string,role: string) => {
+const generateTokens = (userId: string, role: string) => {
   const accessToken = jwt.sign(
-    { userId,role },
+    { userId, role },
     JWT_SECRET as string,
     { expiresIn: JWT_EXPIRES_IN as unknown as jwt.SignOptions['expiresIn'] }
   );
 
   const refreshToken = jwt.sign(
-    { userId,role },
+    { userId, role },
     JWT_REFRESH_SECRET as string,
     { expiresIn: JWT_REFRESH_EXPIRES_IN as unknown as jwt.SignOptions['expiresIn'] }
   );
@@ -62,7 +62,7 @@ export const signup = async (req: Request, res: Response) => {
 
     await user.save();
 
-    const { accessToken, refreshToken } = generateTokens(user._id.toString(),'sanjvikAdmin');
+    const { accessToken, refreshToken } = generateTokens(user._id.toString(), 'sanjvikAdmin');
 
     user.refreshToken = refreshToken;
     await user.save();
@@ -91,7 +91,7 @@ export const login = async (req: Request, res: Response) => {
     if (!isMatch)
       return res.status(400).json({ message: "Invalid credentials" });
 
-    const { accessToken, refreshToken } = generateTokens(user._id.toString(),user.role);
+    const { accessToken, refreshToken } = generateTokens(user._id.toString(), user.role);
 
     user.refreshToken = refreshToken;
     await user.save();
@@ -125,7 +125,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     }
 
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(
-      user._id.toString(),user.role
+      user._id.toString(), user.role
     );
 
     user.refreshToken = newRefreshToken;
