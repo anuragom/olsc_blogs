@@ -13,7 +13,7 @@ export interface IEnquiry extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
-
+//  , 'automotive-engineering', 'retail-fashion', 'it-consumer-electronics', 'healthcare-pharmaceuticals', 'books-publishing', 'fmcg', 'projects', 'bike-logistics', 'campus-logistics'
 const enquirySchema = new Schema<IEnquiry>(
   {
     fullName: { type: String, required: true, trim: true },
@@ -23,7 +23,7 @@ const enquirySchema = new Schema<IEnquiry>(
     message: { type: String, required: true },
     serviceName: { 
       type: String, 
-      enum: ['rail_logistics', 'air_logistics', 'warehousing', '3PL', 'speed_trucking','FTL','PTL','contact_us'],
+      enum: ['rail_logistics', 'air_logistics', 'warehousing', '3PL', 'speed_trucking','FTL','PTL','contact_us','automotive-engineering','retail-fashion','it-consumer-electronics','healthcare-pharmaceuticals','books-publishing','fmcg','projects','bike-logistics','campus-logistics'],
       required: true 
     },
     status: {
