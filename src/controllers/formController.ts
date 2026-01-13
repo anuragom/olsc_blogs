@@ -531,93 +531,36 @@ export const downloadApplicationFile = async (req: Request, res: Response) => {
 };
 export const submitCareerApplication = async (req: Request, res: Response) => {
   try {
-    const { 
-      jobId,
-      firstName, lastName, mobile, email, employeeStatus, 
-      position, currentCTC, expectedCTC, totalExperience, 
-      immediateStart, relocation 
-    } = req.body;
-
     const file = req.file;
-    if (!file) return res.status(400).json({ message: "PDF application is required." });
+    if (!file) return res.status(400).json({ message: "Resume PDF is required." });
 
-
+    // Save initial record with Multer's relative path (e.g., "uploads/careers/filename.pdf")
     const newApplication = await CareerApplication.create({
-      jobId: jobId || null,
-      firstName,
-      lastName,
-      mobile,
-      email,
-      employeeStatus,
-      position,
-      currentCTC,
-      expectedCTC,
-      totalExperience,
-      immediateStart,
-      relocation,
-      resumeUrl: `/uploads/applications/${file.filename}`
+      ...req.body,
+      resumeUrl: file.path 
     });
 
     res.status(201).json({ 
       success: true, 
-      message: "Application submitted and is being processed.",
+      message: "Application received. Processing file...",
       data: newApplication 
     });
 
+    // Background compression logic
     (async () => {
       try {
-        // A. Compress the PDF
         const compressedPath = await compressPDF(file.path);
-        const newFilename = path.basename(compressedPath);
-
-        // B. Update DB with new compressed filename
-        await Application.findByIdAndUpdate(newApplication._id, {
-          applicationFileUrl: `/uploads/applications/${newFilename}`
-        });
-
-       const emailHtml = generateProfessionalEmail(req.body, "Career Application"); // helper function below
-
-        await sendEmail({
-          to: "raghav.raj@olsc.in",
-          subject: `[URGENT] New Career Application - ${firstName} ${lastName}`,
-          html: emailHtml,
-          attachments: [{
-            filename: `Application_${firstName}_${lastName}.pdf`,
-            path: compressedPath 
-          }]
+        
+        // Update DB with the new path returned by compression service
+        await CareerApplication.findByIdAndUpdate(newApplication._id, {
+          resumeUrl: compressedPath
         });
         
-        console.log(`Background processing finished for application: ${newApplication._id}`);
+        console.log(`Career processing finished: ${compressedPath}`);
       } catch (bgError) {
         console.error("Background Processing Error:", bgError);
       }
     })();
-
-    // const emailHtml = `
-    //   <h3>New Career Application Received</h3>
-    //   <p><b>Position:</b> ${position}</p>
-    //   <p><b>Candidate:</b> ${firstName} ${lastName}</p>
-    //   <p><b>Email:</b> ${email}</p>
-    //   <p><b>Experience:</b> ${totalExperience} Years</p>
-    //   <p><b>Current/Expected CTC:</b> ${currentCTC} / ${expectedCTC}</p>
-    //   <p><b>Mobile:</b> ${mobile}</p>
-    // `;
-
-    // sendEmail({
-    //   to: "raghav.raj@olsc.in", 
-    //   subject: `New Job Application: ${position} - ${firstName}`,
-    //   html: emailHtml,
-    //   attachments: [{
-    //     filename: req.file.originalname,
-    //     path: req.file.path
-    //   }]
-    // }).catch(err => console.error("Career Email Error:", err));
-
-    // return res.status(201).json({
-    //   success: true,
-    //   message: "Application submitted successfully",
-    //   applicationId: newApplication._id
-    // });
   } catch (err: any) {
     console.error("Career Submission Error:", err);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -694,24 +637,30 @@ export const getCareerApplicationById = async (req: Request, res: Response) => {
 export const downloadCareerApplicationFile = async (req: Request, res: Response) => {
   try {
     const application = await CareerApplication.findById(req.params.id);
-        if (!application) return res.status(404).json({ message: "Application not found" });
+    
+    if (!application || !application.resumeUrl) {
+      return res.status(404).json({ message: "Application or resume record not found" });
+    }
 
-        const filePath = path.resolve(process.cwd(), application.resumeUrl.startsWith('/') 
-            ? application.resumeUrl.substring(1) 
-            : application.resumeUrl);
+    const filename = path.basename(application.resumeUrl);
+    const filePath = path.join(process.cwd(), "uploads", "careers", filename);
 
-        if (!fs.existsSync(filePath)) {
-            return res.status(404).json({ message: "File not found on server" });
-        }
+    if (!fs.existsSync(filePath)) {
+      
+      const fallbackPath = path.join(process.cwd(), "uploads", filename);
+      if (fs.existsSync(fallbackPath)) {
+        return res.download(fallbackPath);
+      }
 
-        const fileName = `Application_${application.firstName}_${application.lastName}.pdf`;
-        
-        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-        res.setHeader('Content-Type', 'application/pdf');
-        
-        return res.sendFile(filePath);
+      return res.status(404).json({ message: "File no longer exists on the server" });
+    }
+
+    const friendlyName = `Career_App_${application.firstName}_${application.lastName}.pdf`;
+    
+    return res.download(filePath, friendlyName);
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("Download Error:", err);
+    res.status(500).json({ message: "Error processing download" });
   }
 };
 export const updateCareerApplicationStatus = async (req: Request, res: Response) => {
@@ -768,23 +717,26 @@ export const getJobById = async (req: Request, res: Response) => {
 
 export const submitInstituteApplication = async (req: Request, res: Response) => {
   try {
+    console.log("Institute Application Data:", req.body);
     const file = req.file;
     if (!file) return res.status(400).json({ message: "Marksheet is required." });
 
     const application = await InstituteApplication.create({
       ...req.body,
-      marksheetUrl: `/uploads/applications/${file.filename}`
+      marksheetUrl: file.path 
     });
 
-    res.status(201).json({ success: true, message: "Application submitted successfully" });
+    res.status(201).json({ 
+      success: true, 
+      message: "Application submitted successfully. Processing file..." 
+    });
 
     (async () => {
       try {
         const compressedPath = await compressPDF(file.path);
-        const newFilename = path.basename(compressedPath);
-
+        
         await InstituteApplication.findByIdAndUpdate(application._id, {
-          applicationFileUrl: `/uploads/applications/${newFilename}`
+          marksheetUrl: compressedPath
         });
 
         const emailHtml = generateProfessionalEmail(req.body, "Institute Admission");
@@ -794,18 +746,19 @@ export const submitInstituteApplication = async (req: Request, res: Response) =>
           subject: `[New Admission] ${req.body.fullName}`,
           html: emailHtml,
           attachments: [{
-            filename: req.file!.originalname,
+            filename: `Marksheet_${req.body.fullName}.pdf`,
             path: compressedPath 
           }]
         });
         
-        console.log(`Background processing finished for application: ${application._id}`);
+        console.log(`Background processing finished for Institute app: ${application._id}`);
       } catch (bgError) {
         console.error("Background Processing Error:", bgError);
       }
     })();
 
   } catch (error: any) {
+    console.error("Institute Submission Error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -859,21 +812,35 @@ export const updateInstituteStatus = async (req: Request, res: Response) => {
 export const downloadInstituteFile = async (req: Request, res: Response) => {
   try {
     const application = await InstituteApplication.findById(req.params.id);
-        if (!application) return res.status(404).json({ message: "Application not found" });
+    
+    if (!application || !application.marksheetUrl) {
+      return res.status(404).json({ message: "Application or marksheet record not found" });
+    }
 
-        const filePath = path.resolve(process.cwd(), application.marksheetUrl.startsWith('/') 
-            ? application.marksheetUrl.substring(1) 
-            : application.marksheetUrl);
+    const relativePath = application.marksheetUrl.replace(/^\//, '');
+    
+    const filePath = path.join(process.cwd(), relativePath);
 
-        if (!fs.existsSync(filePath)) {
-            return res.status(404).json({ message: "File not found on server" });
-        }
+    if (!fs.existsSync(filePath)) {
+      const filename = path.basename(application.marksheetUrl);
+      const fallbackPath = path.join(process.cwd(), "uploads", "marksheets", filename);
+      
+      if (fs.existsSync(fallbackPath)) {
+        return res.download(fallbackPath, `Marksheet_${application.fullName}.pdf`);
+      }
 
-        const fileName = `Application_${application.fullName}_Marksheet.pdf`;
-        
-        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-        res.setHeader('Content-Type', 'application/pdf');
-        
-        return res.sendFile(filePath);
-  } catch (err: any) { res.status(500).send(err.message); }
+      return res.status(404).json({ message: "File no longer exists on the server" });
+    }
+
+    const friendlyName = `Marksheet_${application.fullName.replace(/\s+/g, '_')}.pdf`;
+    
+    return res.download(filePath, friendlyName, (err) => {
+      if (err) {
+        console.error("Download Error:", err);
+      }
+    });
+  } catch (err: any) {
+    console.error("Internal Download Error:", err);
+    res.status(500).send(err.message);
+  }
 };
