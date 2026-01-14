@@ -11,7 +11,7 @@ import fs from "fs";
 import mongoose from "mongoose";
 
 const SELECT_FIELDS_ENQUIRY = 'fullName email phone serviceName status createdAt message';
-const SELECT_FIELDS_APPLICATION = 'type email firstName lastName contactNumber status createdAt applicationFileUrl desiredLocation city state pincode';
+const SELECT_FIELDS_APPLICATION = 'type email firstName lastName contactNumber status createdAt applicationFileUrl desiredLocation city state pincode areaSqFt vehiclesOwned hasOwnSpace processingStatus';
 const SELECT_FIELDS_CAREER_APPLICATION = 'firstName lastName email position totalExperience status createdAt jobId resumeUrl';
 const SELECT_FIELDS_JOB = 'title location jobType company profile experienceRequired ctc vacancies qualification description responsibilities isActive createdAt';
 
@@ -344,7 +344,8 @@ export const submitApplication = async (req: Request, res: Response) => {
       vehiclesOwned: Number(vehiclesOwned),
       hasOwnSpace: hasOwnSpace === 'true' || hasOwnSpace === true,
       areaSqFt: Number(areaSqFt),
-      applicationFileUrl: `/uploads/applications/${file.filename}`
+      applicationFileUrl: `/uploads/applications/${file.filename}`,
+      processingStatus: 'pending'
     });
 
     // 2. IMMEDIATELY Return response to User
@@ -355,23 +356,27 @@ export const submitApplication = async (req: Request, res: Response) => {
     });
 
     // 3. BACKGROUND PROCESSING (Non-blocking)
-    // Using an IIFE (Immediately Invoked Function Expression)
+
     (async () => {
-      try {
-        // A. Compress the PDF
-        const compressedPath = await compressPDF(file.path);
-        const newFilename = path.basename(compressedPath);
+    // Set a timeout to detect "stuck" processes (e.g., 2 minutes)
+    const timeoutId = setTimeout(async () => {
+       await Application.findByIdAndUpdate(application._id, { 
+         processingStatus: 'stuck',
+         processingError: 'Processing exceeded 2 minutes limit' 
+       });
+       console.error(`Alert: Application ${application._id} is likely stuck.`);
+    }, 120000); 
 
-        // B. Update DB with new compressed filename
-        await Application.findByIdAndUpdate(application._id, {
-          applicationFileUrl: `/uploads/applications/${newFilename}`
-        });
+    try {
+      // A. Compression
+      const compressedPath = await compressPDF(file.path);
 
-        // C. Prepare and Send Email
-        const appTitle = type === 'franchise' ? 'Franchise Partnership' : 'Retail Partner';
-        const emailHtml = generateProfessionalEmail(req.body, appTitle); // helper function below
+       const appTitle = type === 'franchise' ? 'Franchise Partnership' : 'Retail Partner';
+       const emailHtml = generateProfessionalEmail(req.body, appTitle); 
 
-        await sendEmail({
+      
+      // B. Email
+          await sendEmail({
           to: "raghav.raj@olsc.in",
           subject: `[URGENT] New ${appTitle} Application - ${firstName} ${lastName}`,
           html: emailHtml,
@@ -380,12 +385,23 @@ export const submitApplication = async (req: Request, res: Response) => {
             path: compressedPath 
           }]
         });
-        
-        console.log(`Background processing finished for application: ${application._id}`);
-      } catch (bgError) {
-        console.error("Background Processing Error:", bgError);
-      }
-    })();
+
+      // C. Success Update
+      await Application.findByIdAndUpdate(application._id, {
+        applicationFileUrl: `/uploads/applications/${path.basename(compressedPath)}`,
+        processingStatus: 'completed'
+      });
+      
+      clearTimeout(timeoutId); 
+    } catch (bgError: any) {
+      clearTimeout(timeoutId);
+      console.error("Background Processing Error:", bgError);
+      await Application.findByIdAndUpdate(application._id, {
+        processingStatus: 'failed',
+        processingError: bgError.message
+      });
+    }
+  })();
 
   } catch (error: any) {
     console.error("Application Main Error:", error);
@@ -444,6 +460,9 @@ export const getAllApplications = async (req: Request, res: Response) => {
       .lean();
 
     const total = await Application.countDocuments(query);
+    const totalSuccesses = await Application.countDocuments({ processingStatus: 'completed' });
+
+    const totalFailures = total - totalSuccesses;
 
     return res.status(200).json({
       data: applications,
@@ -452,6 +471,8 @@ export const getAllApplications = async (req: Request, res: Response) => {
         page,
         limit,
         totalPages: Math.ceil(total / limit),
+        totalFailures: totalFailures || 0,
+        totalSuccesses: totalSuccesses || 0,
       },
     });
   } catch (err: any) {
@@ -537,7 +558,8 @@ export const submitCareerApplication = async (req: Request, res: Response) => {
     // Save initial record with Multer's relative path (e.g., "uploads/careers/filename.pdf")
     const newApplication = await CareerApplication.create({
       ...req.body,
-      resumeUrl: file.path 
+      resumeUrl: file.path,
+      processingStatus: 'pending' 
     });
 
     res.status(201).json({ 
@@ -548,17 +570,45 @@ export const submitCareerApplication = async (req: Request, res: Response) => {
 
     // Background compression logic
     (async () => {
+      const timeoutId = setTimeout(async () => {
+       await CareerApplication.findByIdAndUpdate(newApplication._id, { 
+         processingStatus: 'stuck',
+         processingError: 'Processing exceeded 2 minutes limit' 
+       });
+       console.error(`Alert: Application ${newApplication._id} is likely stuck.`);
+    }, 120000); 
+
       try {
+        // A. Compression
         const compressedPath = await compressPDF(file.path);
+
+        const appTitle =  'Career' 
+        const emailHtml = generateProfessionalEmail(req.body, appTitle); 
+
+        // B. Email
+          await sendEmail({
+          to: "raghav.raj@olsc.in",
+          subject: `[URGENT] New ${appTitle} Application - ${req.body.firstName} ${req.body.lastName}`,
+          html: emailHtml,
+          attachments: [{
+            filename: `Application_${req.body.firstName}_${req.body.lastName}_Maeksheet.pdf`,
+            path: compressedPath 
+          }]
+        });
         
         // Update DB with the new path returned by compression service
         await CareerApplication.findByIdAndUpdate(newApplication._id, {
-          resumeUrl: compressedPath
+          resumeUrl: compressedPath,
+          processingStatus: 'completed'
         });
-        
-        console.log(`Career processing finished: ${compressedPath}`);
-      } catch (bgError) {
+        clearTimeout(timeoutId);
+      } catch (bgError: any) {
+        clearTimeout(timeoutId);
         console.error("Background Processing Error:", bgError);
+          await CareerApplication.findByIdAndUpdate(newApplication._id, {
+          processingStatus: 'failed',
+          processingError: bgError.message
+        });
       }
     })();
   } catch (err: any) {
@@ -609,6 +659,9 @@ export const getAllCareerApplications = async (req: Request, res: Response) => {
       .limit(limit);
 
     const total = await CareerApplication.countDocuments(query);
+    const totalSuccesses = await CareerApplication.countDocuments({ processingStatus: 'completed' });
+
+    const totalFailures = total - totalSuccesses;
 
     res.status(200).json({
       success: true,
@@ -617,7 +670,9 @@ export const getAllCareerApplications = async (req: Request, res: Response) => {
         total, 
         page, 
         limit, 
-        totalPages: Math.ceil(total / limit) 
+        totalPages: Math.ceil(total / limit),
+        totalFailures: totalFailures || 0,
+        totalSuccesses: totalSuccesses || 0,
       }
     });
   } catch (err: any) {
@@ -723,7 +778,8 @@ export const submitInstituteApplication = async (req: Request, res: Response) =>
 
     const application = await InstituteApplication.create({
       ...req.body,
-      marksheetUrl: file.path 
+      marksheetUrl: file.path,
+      processingStatus: 'pending' 
     });
 
     res.status(201).json({ 
@@ -732,14 +788,23 @@ export const submitInstituteApplication = async (req: Request, res: Response) =>
     });
 
     (async () => {
-      try {
-        const compressedPath = await compressPDF(file.path);
-        
-        await InstituteApplication.findByIdAndUpdate(application._id, {
-          marksheetUrl: compressedPath
-        });
+      // Set a timeout to detect "stuck" processes (e.g., 2 minutes)
+      const timeoutId = setTimeout(async () => {
+       await InstituteApplication.findByIdAndUpdate(application._id, { 
+         processingStatus: 'stuck',
+         processingError: 'Processing exceeded 2 minutes limit' 
+       });
+       console.error(`Alert: Application ${application._id} is likely stuck.`);
+    }, 120000); 
 
-        const emailHtml = generateProfessionalEmail(req.body, "Institute Admission");
+      try {
+        // A. Compression
+        const compressedPath = await compressPDF(file.path);
+
+        const appTitle = 'Institute'
+        const emailHtml = generateProfessionalEmail(req.body, appTitle); 
+
+        //B Email
 
         await sendEmail({
           to: "raghav.raj@olsc.in",
@@ -751,9 +816,20 @@ export const submitInstituteApplication = async (req: Request, res: Response) =>
           }]
         });
         
+        await InstituteApplication.findByIdAndUpdate(application._id, {
+          marksheetUrl: compressedPath,
+          processingStatus: 'completed'
+        });
+        
+        clearTimeout(timeoutId); 
         console.log(`Background processing finished for Institute app: ${application._id}`);
-      } catch (bgError) {
+      } catch (bgError : any) {
+        clearTimeout(timeoutId);
         console.error("Background Processing Error:", bgError);
+        await InstituteApplication.findByIdAndUpdate(application._id, {
+          processingStatus: 'failed',
+          processingError: bgError.message
+      });
       }
     })();
 
@@ -786,7 +862,10 @@ export const getAllInstituteApplications = async (req: Request, res: Response) =
       .limit(Number(limit));
 
     const total = await InstituteApplication.countDocuments(query);
-    res.status(200).json({ data, pagination: { total, page: Number(page), totalPages: Math.ceil(total / Number(limit)) } });
+    const totalSuccesses = await Application.countDocuments({ processingStatus: 'completed' });
+
+    const totalFailures = total - totalSuccesses;
+    res.status(200).json({ data, pagination: { total, page: Number(page), totalPages: Math.ceil(total / Number(limit)), totalSuccesses: totalSuccesses || 0, totalFailures: totalFailures } });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
