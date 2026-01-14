@@ -24,6 +24,8 @@ export interface IInstituteApplication extends Document {
   reference?: string;
   status: 'new' | 'reviewed' | 'admitted' | 'rejected';
   createdAt: Date;
+  processingStatus: 'pending' | 'completed' | 'failed' | 'stuck';
+  processingError?: string;
 }
 
 const instituteSchema = new Schema<IInstituteApplication>({
@@ -48,7 +50,9 @@ const instituteSchema = new Schema<IInstituteApplication>({
   place: { type: String, required: true },
   date: { type: String, required: true },
   reference: { type: String },
-  status: { type: String, enum: ['new', 'reviewed', 'admitted', 'rejected'], default: 'new' }
+  status: { type: String, enum: ['new', 'reviewed', 'admitted', 'rejected'], default: 'new' },
+  processingStatus: { type: String, enum: ['pending', 'completed', 'failed', 'stuck'], default: 'pending' },
+  processingError: { type: String, required: false },
 }, { timestamps: true });
 
 export default model<IInstituteApplication>("InstituteApplication", instituteSchema);

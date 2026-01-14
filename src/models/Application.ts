@@ -18,6 +18,8 @@ export interface IApplication extends Document {
   areaSqFt: number;
   applicationFileUrl: string; 
   status: 'new' | 'reviewed' | 'contacted' | 'rejected';
+  processingStatus: 'pending' | 'completed' | 'failed' | 'stuck';
+  processingError?: string;
 }
 
 const applicationSchema = new Schema<IApplication>(
@@ -36,7 +38,9 @@ const applicationSchema = new Schema<IApplication>(
     hasOwnSpace: { type: Boolean, default: false },
     areaSqFt: { type: Number, required: true },
     applicationFileUrl: { type: String, required: true },
-    status: { type: String, enum: ['new', 'reviewed', 'contacted', 'rejected'], default: 'new' }
+    status: { type: String, enum: ['new', 'reviewed', 'contacted', 'rejected'], default: 'new' },
+    processingStatus: { type: String, enum: ['pending', 'completed', 'failed', 'stuck'], default: 'pending' },
+    processingError: { type: String, required: false },
   },
   { timestamps: true }
 );

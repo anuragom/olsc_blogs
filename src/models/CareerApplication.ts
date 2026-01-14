@@ -17,6 +17,8 @@ export interface ICareerApplication extends Document {
   createdAt: Date;
   updatedAt: Date;
   jobId?: Schema.Types.ObjectId | null;
+  processingStatus: 'pending' | 'completed' | 'failed' | 'stuck';
+  processingError?: string;
 }
 
 const careerApplicationSchema = new Schema<ICareerApplication>(
@@ -39,6 +41,8 @@ const careerApplicationSchema = new Schema<ICareerApplication>(
       default: 'new' 
     },
     jobId: { type: Schema.Types.ObjectId, ref: 'Job', default: null },
+    processingStatus: { type: String, enum: ['pending', 'completed', 'failed', 'stuck'], default: 'pending' },
+    processingError: { type: String, required: false },
   },
   { timestamps: true }
 );
