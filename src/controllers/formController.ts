@@ -15,6 +15,213 @@ const SELECT_FIELDS_APPLICATION = 'type email firstName lastName contactNumber s
 const SELECT_FIELDS_CAREER_APPLICATION = 'firstName lastName email position totalExperience status createdAt jobId resumeUrl';
 const SELECT_FIELDS_JOB = 'title location jobType company profile experienceRequired ctc vacancies qualification description responsibilities isActive createdAt';
 
+const generateProfessionalEmail = (data: Record<string, any>, title: string) => {
+  const logoUrl = "https://olscpanel.omlogistics.co.in/api/blogs/696b520889d509221f3085d5/cover"; 
+
+  // Generate date in dd-mm-yyyy format
+  const dateNow = new Date();
+  const formattedDate = dateNow.toLocaleDateString('en-GB').replace(/\//g, '-'); 
+  // en-GB naturally gives dd/mm/yyyy, we replace / with -
+
+  return `
+  <div style="
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    background-color: #f4f6f8;
+    padding: 24px;
+  ">
+    <div style="
+      max-width: 650px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    ">
+
+      <div style="
+        background: linear-gradient(135deg, #001F39, #084C83);
+        padding: 30px;
+        text-align: center;
+        color: #ffffff;
+      ">
+        <div style="background: #ffffff; display: inline-block; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+           <img src="${logoUrl}" alt="OLSC Logo" style="height: 40px; display: block;" />
+        </div>
+        <h2 style="
+          margin: 0;
+          font-size: 22px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+        ">
+          OLSC PANEL
+        </h2>
+        <p style="
+          margin-top: 6px;
+          font-size: 14px;
+          opacity: 0.9;
+          font-weight: 600;
+        ">
+          ${title}
+        </p>
+        <p style="
+          margin-top: 4px;
+          font-size: 12px;
+          opacity: 0.7;
+          letter-spacing: 1px;
+        ">
+          DATE: ${formattedDate}
+        </p>
+      </div>
+
+      <div style="padding: 28px;">
+        <p style="
+          font-size: 14px;
+          color: #475569;
+          margin-bottom: 20px;
+        ">
+          A new submission has been recorded with the following details:
+        </p>
+
+        <div style="border: 1px solid #f1f5f9; border-radius: 8px; padding: 0 16px;">
+          ${Object.entries(data)
+            .filter(([_, value]) => value !== undefined && value !== "")
+            .map(([key, value]) => renderRow(formatLabel(key), value))
+            .join("")}
+        </div>
+      </div>
+
+      <div style="
+        background: #f8fafc;
+        padding: 20px;
+        text-align: center;
+        font-size: 12px;
+        color: #64748b;
+        border-top: 1px solid #edf2f7;
+      ">
+        <strong>Om Logistics Supply Chain</strong><br />
+        This is an automated email. Please do not reply to this address.
+      </div>
+    </div>
+  </div>
+  `;
+};
+// const generateProfessionalEmail = (data: Record<string, any>, title: string) => {
+//   // Replace this with your actual live website URL
+//   const logoUrl = "https://olscpanel.omlogistics.co.in/api/blogs/696b520889d509221f3085d5/cover"; 
+
+//   return `
+//   <div style="
+//     font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+//     background-color: #f4f6f8;
+//     padding: 24px;
+//   ">
+//     <div style="
+//       max-width: 650px;
+//       margin: 0 auto;
+//       background: #ffffff;
+//       border-radius: 14px;
+//       overflow: hidden;
+//       box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+//     ">
+
+//       <div style="
+//         background: linear-gradient(135deg, #001F39, #084C83);
+//         padding: 30px;
+//         text-align: center;
+//         color: #ffffff;
+//       ">
+//         <div style="background: #ffffff; display: inline-block; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+//            <img src="${logoUrl}" alt="OLSC Logo" style="height: 40px; display: block;" />
+//         </div>
+//         <h2 style="
+//           margin: 0;
+//           font-size: 22px;
+//           font-weight: 700;
+//           letter-spacing: 0.5px;
+//           text-transform: uppercase;
+//         ">
+//           OLSC PANEL
+//         </h2>
+//         <p style="
+//           margin-top: 6px;
+//           font-size: 14px;
+//           opacity: 0.9;
+//         ">
+//           ${title}
+//         </p>
+//       </div>
+
+//       <div style="padding: 28px;">
+//         <p style="
+//           font-size: 14px;
+//           color: #475569;
+//           margin-bottom: 20px;
+//         ">
+//           A new submission has been recorded with the following details:
+//         </p>
+
+//         <div style="border: 1px solid #f1f5f9; border-radius: 8px; padding: 0 16px;">
+//           ${Object.entries(data)
+//             .filter(([_, value]) => value !== undefined && value !== "")
+//             .map(([key, value]) => renderRow(formatLabel(key), value))
+//             .join("")}
+//         </div>
+//       </div>
+
+//       <div style="
+//         background: #f8fafc;
+//         padding: 20px;
+//         text-align: center;
+//         font-size: 12px;
+//         color: #64748b;
+//         border-top: 1px solid #edf2f7;
+//       ">
+//         <strong>Om Logistics Supply Chain</strong><br />
+//         This is an automated email. Please do not reply to this address.
+//       </div>
+//     </div>
+//   </div>
+//   `;
+// };
+
+const formatLabel = (key: string) => {
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (str) => str.toUpperCase());
+};
+
+const renderRow = (label: string, value: any) => `
+  <div style="
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid #e5e7eb;
+    gap: 12px;
+    font-size: 14px;
+  ">
+    <span style="
+      color: #64748b;
+      font-weight: 600;
+      min-width: 140px;
+    ">
+      ${label}
+    </span>
+    <span style="
+      color: #0f172a;
+      font-weight: 600;
+      text-align: right;
+      word-break: break-word;
+    ">
+      ${String(value)}
+    </span>
+  </div>
+`;
+
+
+
+
 export const createEnquiry = async (req: Request, res: Response) => {
   try {
     const { fullName, email, phone, query, message, serviceName } = req.body;
@@ -32,30 +239,38 @@ export const createEnquiry = async (req: Request, res: Response) => {
     }] : null;
 
 
-    const adminHtml = `
-      <h2>New Website Enquiry</h2>
-      <p><b>Service:</b> ${serviceName}</p>
-      <p><b>User:</b> ${fullName} (${email})</p>
-      <p><b>Phone:</b> ${phone}</p>
-      <p><b>Message:</b> ${message}</p>
-    `;
-
-    console.log("Sending admin email");
-
-    await sendEmail({
-      to: "raghav.raj@olsc.in, divyanshu.choudhary@olsc.in",
-      subject: `[New Enquiry] - ${serviceName}`,
-      html: adminHtml,
-      attachments: emailAttachments
-    })
-
-    console.log("Admin email sent successfully");
-
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       message: "Enquiry submitted successfully",
       data: newEnquiry
     });
+
+
+    (async () => {
+      const timeoutId = setTimeout(async () => {
+        console.error(`Alert: Application ${newEnquiry._id} is likely stuck.`);
+      }, 120000); 
+
+    try {
+
+       const appTitle = 'Enquiry Forms';
+       const emailHtml = generateProfessionalEmail(req.body, appTitle); 
+
+          await sendEmail({
+          to: "raghav.raj@olsc.in, divyanshu.choudhary@olsc.in",
+          subject: `[New Enquiry] - ${serviceName}`,
+          html: emailHtml,
+          attachments: emailAttachments
+        });
+
+      
+      clearTimeout(timeoutId); 
+    } catch (bgError: any) {
+      clearTimeout(timeoutId);
+      console.error("Background Processing Error:", bgError);
+    }
+  })();
+
   } catch (err: any) {
     console.error("Enquiry Controller Error:", err);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -168,164 +383,6 @@ export const deleteEnquiry = async (req: Request, res: Response) => {
   }
 };
 
-// interface S3File extends Express.Multer.File {
-//   location: string;
-// }
-
-// export const submitApplication = async (req: Request, res: Response) => {
-//   try {
-//     const file = req.file as S3File;
-//     if (!file) return res.status(400).json({ message: "PDF application is required." });
-
-//     const {
-//       type, firstName, lastName, address, city, state, 
-//       contactNumber, email, desiredLocation, pincode, 
-//       vehiclesOwned, hasOwnSpace, areaSqFt 
-//     } = req.body;
-
-//     // Save to MongoDB
-//     const application = await Application.create({
-//       type,
-//       firstName,
-//       lastName,
-//       address,
-//       city,
-//       state,
-//       contactNumber,
-//       email,
-//       desiredLocation,
-//       pincode,
-//       vehiclesOwned: Number(vehiclesOwned),
-//       hasOwnSpace: hasOwnSpace === 'true' || hasOwnSpace === true,
-//       areaSqFt: Number(areaSqFt),
-//       applicationFileUrl: file.location // S3 URL
-//     });
-
-//     // Send Email
-//     const emailHtml = `
-//       <h3>New ${type === 'franchise' ? 'Franchise' : 'Retail Partner'} Application</h3>
-//       <p><b>Name:</b> ${firstName} ${lastName}</p>
-//       <p><b>Location:</b> ${desiredLocation}, ${city} (${pincode})</p>
-//       <p><b>Contact:</b> ${contactNumber} | ${email}</p>
-//       <p><b>Space Info:</b> ${areaSqFt} Sq Ft (Owned: ${hasOwnSpace})</p>
-//       <p><b>Vehicles:</b> ${vehiclesOwned}</p>
-//       <p><a href="${file.location}">View PDF on S3</a></p>
-//     `;
-
-//     await sendEmail({
-//       to: "raghav.raj@olsc.in",
-//       subject: `[Application] New ${type} Request`,
-//       html: emailHtml,
-//       attachments: [{
-//         filename: file.originalname,
-//         path: file.location // Nodemailer streams from URL automatically
-//       }]
-//     });
-
-//     return res.status(201).json({ success: true, data: application });
-//   } catch (error: any) {
-//     console.error("Application Error:", error);
-//     return res.status(500).json({ message: error.message });
-//   }
-// };
-
-// export const submitApplication = async (req: Request, res: Response) => {
-//   try {
-//     const file = req.file;
-//     if (!file) return res.status(400).json({ message: "PDF application is required." });
-
-//     const {
-//       type, firstName, lastName, address, city, state, 
-//       contactNumber, email, desiredLocation, pincode, 
-//       vehiclesOwned, hasOwnSpace, areaSqFt 
-//     } = req.body;
-
-//     const applicationFileUrl = `/uploads/applications/${file.filename}`;
-
-//     const application = await Application.create({
-//       type, firstName, lastName, address, city, state, 
-//       contactNumber, email, desiredLocation, pincode, 
-//       vehiclesOwned: Number(vehiclesOwned),
-//       hasOwnSpace: hasOwnSpace === 'true' || hasOwnSpace === true,
-//       areaSqFt: Number(areaSqFt),
-//       applicationFileUrl
-//     });
-
-//     // Professional Email Template
-//     const appTitle = type === 'franchise' ? 'Franchise Partnership' : 'Retail Partner';
-    
-//     const emailHtml = `
-//       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-top: 4px solid #0056b3;">
-//         <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-bottom: 1px solid #e0e0e0;">
-//           <h2 style="color: #0056b3; margin: 0; text-transform: uppercase; letter-spacing: 1px;">New Application Received</h2>
-//           <p style="margin: 5px 0 0; color: #666;">Type: <strong>${appTitle}</strong></p>
-//         </div>
-        
-//         <div style="padding: 30px;">
-//           <p style="margin-top: 0;">Hello Admin,</p>
-//           <p>A new partnership application has been submitted through the website. Below are the candidate details:</p>
-          
-//           <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-//             <tr>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; color: #777; width: 40%;">Full Name</td>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; font-weight: bold;">${firstName} ${lastName}</td>
-//             </tr>
-//             <tr>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; color: #777;">Email Address</td>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;"><a href="mailto:${email}" style="color: #0056b3; text-decoration: none;">${email}</a></td>
-//             </tr>
-//             <tr>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; color: #777;">Phone Number</td>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${contactNumber}</td>
-//             </tr>
-//             <tr>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; color: #777;">Desired Location</td>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${desiredLocation}, ${city} (${pincode})</td>
-//             </tr>
-//             <tr>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; color: #777;">State</td>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${state}</td>
-//             </tr>
-//             <tr>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; color: #777;">Space Availability</td>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${areaSqFt} Sq. Ft. (${hasOwnSpace === 'true' || hasOwnSpace === true ? 'Owned' : 'Rented/Not Owned'})</td>
-//             </tr>
-//             <tr>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; color: #777;">Vehicles Owned</td>
-//               <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${vehiclesOwned}</td>
-//             </tr>
-//           </table>
-
-//           <div style="background-color: #fff9db; padding: 15px; border-radius: 5px; border: 1px solid #ffe066; margin-top: 20px;">
-//             <p style="margin: 0; font-size: 14px; color: #856404;">
-//               <strong>Note:</strong> The official application document is attached to this email for your review.
-//             </p>
-//           </div>
-//         </div>
-
-//         <div style="padding: 20px; background-color: #f8f9fa; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #e0e0e0;">
-//           <p style="margin: 0;">This is an automated notification from the OLSC Portal.</p>
-//         </div>
-//       </div>
-//     `;
-
-//     await sendEmail({
-//       to: "divyanshu.choudhary@olsc.in",
-//       subject: `[URGENT] New ${appTitle} Application - ${firstName} ${lastName}`,
-//       html: emailHtml,
-//       attachments: [{
-//         filename: `Application_${firstName}_${lastName}.pdf`,
-//         path: file.path 
-//       }]
-//     });
-
-//     return res.status(201).json({ success: true, data: application });
-//   } catch (error: any) {
-//     console.error("Application Error:", error);
-//     return res.status(500).json({ message: error.message });
-//   }
-// };
-
 export const submitApplication = async (req: Request, res: Response) => {
   try {
     const file = req.file;
@@ -372,7 +429,9 @@ export const submitApplication = async (req: Request, res: Response) => {
       const compressedPath = await compressPDF(file.path);
 
        const appTitle = type === 'franchise' ? 'Franchise Partnership' : 'Retail Partner';
-       const emailHtml = generateProfessionalEmail(req.body, appTitle); 
+
+       const { type: _, ...emailData } = req.body;
+       const emailHtml = generateProfessionalEmail(emailData, appTitle); 
 
       
       // B. Email
@@ -407,22 +466,6 @@ export const submitApplication = async (req: Request, res: Response) => {
     console.error("Application Main Error:", error);
     return res.status(500).json({ message: error.message });
   }
-};
-const generateProfessionalEmail = (data: any, appTitle: string) => {
-    return `
-      <div style="font-family: sans-serif; color: #333; max-width: 600px; border-top: 4px solid #0056b3;">
-        <div style="background: #f8f9fa; padding: 20px; text-align: center;">
-          <h2>New Application: ${appTitle}</h2>
-        </div>
-        <div style="padding: 20px;">
-          <p><b>Name:</b> ${data.firstName} ${data.lastName}</p>
-          <p><b>Email:</b> ${data.email}</p>
-          <p><b>Phone:</b> ${data.contactNumber}</p>
-          <p><b>Location:</b> ${data.desiredLocation}, ${data.city} (${data.pincode})</p>
-          <p><b>Space:</b> ${data.areaSqFt} Sq. Ft.</p>
-        </div>
-      </div>
-    `;
 };
 export const getAllApplications = async (req: Request, res: Response) => {
   try {
