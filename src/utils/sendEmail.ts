@@ -15,7 +15,6 @@ interface EmailOptions {
 }
 
 export const sendEmail = async (options: EmailOptions) => {
-    // console.log("Preparing to send email host--------------------------->>>>>>>>>>:", EMAIL_CONFIG.host, "from:", EMAIL_CONFIG.from,"auth user:", EMAIL_CONFIG.auth.user, "port:", EMAIL_CONFIG.port, "secure:", EMAIL_CONFIG.secure);
     const transporter = nodemailer.createTransport({
         host: EMAIL_CONFIG.host,
         port: EMAIL_CONFIG.port,
@@ -39,7 +38,6 @@ export const sendEmail = async (options: EmailOptions) => {
 
     try {
         const info = await transporter.sendMail(mailOptions);
-        // console.log("Email successfully dispatched: %s", info.messageId);
         return info.messageId;
     } catch (error) {
         console.error("Mail Dispatch Error:", error);
