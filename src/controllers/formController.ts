@@ -144,8 +144,8 @@ export const createEnquiry = async (req: Request, res: Response) => {
        const emailHtml = generateProfessionalEmail(req.body, appTitle); 
 
           await sendEmail({
-          to: "raghav.raj@olsc.in, divyanshu.choudhary@olsc.in",
-          subject: `prod [New Enquiry] - ${serviceName}`,
+          to: "omgroup@olsc.in, monika.arora@olsc.in, customercare@olsc.in",
+          subject: `[New Enquiry] - ${serviceName}`,
           html: emailHtml,
           attachments: emailAttachments
         });
@@ -315,7 +315,13 @@ export const submitApplication = async (req: Request, res: Response) => {
       // A. Compression
       const compressedPath = await compressPDF(file.path);
 
+       const isFranchise = type === 'franchise';
+
        const appTitle = type === 'franchise' ? 'Franchise Partnership' : 'Retail Partner';
+
+       const recipientList = isFranchise 
+        ? "sandeep.bhaker@olsc.in, rajeev.dhama@olsc.in" 
+        : "jatin.kalra@olsc.in";
 
        const { type: _, ...emailData } = req.body;
        const emailHtml = generateProfessionalEmail(emailData, appTitle); 
@@ -323,7 +329,7 @@ export const submitApplication = async (req: Request, res: Response) => {
       
       // B. Email
           await sendEmail({
-          to: "raghav.raj@olsc.in, divyanshu.choudhary@olsc.in",
+          to: recipientList,
           subject: `New ${appTitle} Application - ${firstName} ${lastName}`,
           html: emailHtml,
           attachments: [{
@@ -517,7 +523,7 @@ export const submitCareerApplication = async (req: Request, res: Response) => {
 
         // B. Email
           await sendEmail({
-          to: "raghav.raj@olsc.in, divyanshu.choudhary@olsc.in",
+          to: "harsh.sharma@olsc.in , divya.singh@olsc.in, pranav.raj@olsc.in",
           subject: `New ${appTitle} Application - ${req.body.firstName} ${req.body.lastName}`,
           html: emailHtml,
           attachments: [{
@@ -737,7 +743,7 @@ export const submitInstituteApplication = async (req: Request, res: Response) =>
         //B Email
 
         await sendEmail({
-          to: "raghav.raj@olsc.in, divyanshu.choudhary@olsc.in",
+          to: "ominstitute@olsc.in, divyanshu.choudhary@olsc.in",
           subject: `[New Admission] ${req.body.fullName}`,
           html: emailHtml,
           attachments: [{
