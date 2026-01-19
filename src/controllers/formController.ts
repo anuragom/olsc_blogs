@@ -5,6 +5,7 @@ import Application from "@models/Application";
 import CareerApplication from "@models/CareerApplication";
 import InstituteApplication from "@models/InstituteApplication";
 import Job from "@models/Job";
+import PickupRequest from "@models/PickupRequest";
 import { compressPDF } from "../utils/pdfService";
 import path from "path";
 import fs from "fs";
@@ -864,5 +865,174 @@ export const downloadInstituteFile = async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error("Internal Download Error:", err);
     res.status(500).send(err.message);
+  }
+};
+
+
+
+export const createPickupRequest = async (req: Request, res: Response) => {
+  try {
+    // 1. Validation of mandatory fields based on your frontend logic
+    const requiredFields = [
+      'consignor_fullName', 'consignor_contactNo', 'consignor_address', 'consignor_pinCode',
+      'consignee_fullName', 'consignee_contactNo', 'consignee_address', 'consignee_pinCode',
+      'pickup_expectedDate', 'pickup_pickupMode', 'pickup_loadType', 
+      'product_totalWeight', 'product_numberOfBoxes', 'product_packagingType'
+    ];
+
+    for (const field of requiredFields) {
+      if (!req.body[field]) {
+        return res.status(400).json({ message: `${field.replace(/_/g, ' ')} is required.` });
+      }
+    }
+
+    // 2. Create Initial Record
+    const newPickup = await PickupRequest.create({
+      ...req.body,
+      processingStatus: 'pending'
+    });
+
+    // 3. Instant Response
+    res.status(201).json({
+      success: true,
+      message: "Pickup request submitted successfully",
+      data: newPickup
+    });
+
+    // 4. Background Processing IIFE
+    (async () => {
+      const timeoutId = setTimeout(async () => {
+        await PickupRequest.findByIdAndUpdate(newPickup._id, {
+          processingStatus: 'stuck',
+          processingError: 'Processing exceeded 2 minutes limit'
+        });
+        console.error(`Alert: Pickup Request ${newPickup._id} is likely stuck.`);
+      }, 120000);
+
+      try {
+        const appTitle = 'Pickup Request Form';
+        
+        // Remove internal fields before passing to email template
+        const { processingStatus, status, ...emailData } = req.body;
+        const emailHtml = generateProfessionalEmail(emailData, appTitle);
+
+        // Routing Logic (Same as Enquiry)
+        // Note: Pickup Request typically goes to main operations, 
+        // but adding your specific routing if serviceName was involved.
+        const recipientList = "raghav.raj@olsc.in";
+
+        await sendEmail({
+          to: recipientList,
+          subject: `[Pickup Request] - ${req.body.consignor_fullName} (${req.body.consignor_pinCode})`,
+          html: emailHtml,
+        });
+
+        await PickupRequest.findByIdAndUpdate(newPickup._id, {
+          processingStatus: 'completed'
+        });
+
+        clearTimeout(timeoutId);
+      } catch (bgError: any) {
+        clearTimeout(timeoutId);
+        console.error("Background Processing Error (Pickup):", bgError);
+        await PickupRequest.findByIdAndUpdate(newPickup._id, {
+          processingStatus: 'failed',
+          processingError: bgError.message
+        });
+      }
+    })();
+
+  } catch (err: any) {
+    console.error("Pickup Request Controller Error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+export const getAllPickupRequests = async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const { status, pickupMode, startDate, endDate, search } = req.query;
+    const query: any = {};
+
+    if (status) query.status = status;
+    if (pickupMode) query.pickup_pickupMode = pickupMode;
+
+    if (search) {
+      query.$or = [
+        { consignor_fullName: { $regex: search, $options: "i" } },
+        { consignor_contactNo: { $regex: search, $options: "i" } },
+        { consignee_fullName: { $regex: search, $options: "i" } },
+        { consignor_pinCode: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    if (startDate) {
+      const start = new Date(startDate as string);
+      const end = endDate ? new Date(endDate as string) : new Date(startDate as string);
+      end.setHours(23, 59, 59, 999);
+      query.createdAt = { $gte: start, $lte: end };
+    }
+
+    const pickups = await PickupRequest.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const total = await PickupRequest.countDocuments(query);
+
+    return res.status(200).json({
+      data: pickups,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const updatePickupStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = ['new', 'assigned', 'picked', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    const updated = await PickupRequest.findByIdAndUpdate(id, { status }, { new: true });
+    if (!updated) return res.status(404).json({ message: "Request not found" });
+
+    return res.status(200).json({ success: true, data: updated });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const getPickupById = async (req: Request, res: Response) => {
+  try {
+    const pickup = await PickupRequest.findById(req.params.id);
+    if (!pickup) return res.status(404).json({ message: "Pickup request not found" });
+    return res.status(200).json(pickup);
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const deletePickupRequest = async (req: Request, res: Response) => {
+  try {
+    await PickupRequest.findByIdAndDelete(req.params.id);
+    return res.status(200).json({ message: "Pickup request record deleted" });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
   }
 };
