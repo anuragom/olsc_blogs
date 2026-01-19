@@ -143,8 +143,15 @@ export const createEnquiry = async (req: Request, res: Response) => {
        const appTitle = 'Enquiry Forms';
        const emailHtml = generateProfessionalEmail(req.body, appTitle); 
 
+       const isSpecialService = ['bike-logistics', 'campus-logistics'].includes(serviceName);
+
+// 2. Assign the recipient list based on that check
+    const recipientList = isSpecialService 
+      ? "jatin.kalra@olsc.in" 
+      : "omgroup@olsc.in, monika.arora@olsc.in, customercare@olsc.in";
+
           await sendEmail({
-          to: "omgroup@olsc.in, monika.arora@olsc.in, customercare@olsc.in",
+          to: recipientList,
           subject: `[New Enquiry] - ${serviceName}`,
           html: emailHtml,
           attachments: emailAttachments
