@@ -1,6 +1,6 @@
 import { Schema, model, Document } from "mongoose";
 
-export type ServiceType = 'rail_logistics' | 'air_logistics' | 'warehousing' | 'road_transport' | 'supply_chain';
+export type ServiceType = 'rail_logistics'| 'air_logistics'| 'warehousing'| '3PL'| 'speed_trucking'|'FTL'|'PTL'|'contact_us'|'automotive-engineering'|'retail-fashion'|'it-consumer-electronics'|'healthcare-pharmaceuticals'|'books-publishing'|'fmcg'|'projects'|'bike-logistics'|'campus-logistics';
 
 export interface IEnquiry extends Document {
   fullName: string;
