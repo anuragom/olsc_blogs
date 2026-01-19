@@ -17,88 +17,66 @@ const SELECT_FIELDS_JOB = 'title location jobType company profile experienceRequ
 
 const generateProfessionalEmail = (data: Record<string, any>, title: string) => {
   const logoUrl = "https://olscpanel.omlogistics.co.in/api/blogs/696b520889d509221f3085d5/cover"; 
-
-  // Generate date in dd-mm-yyyy format
   const dateNow = new Date();
   const formattedDate = dateNow.toLocaleDateString('en-GB').replace(/\//g, '-'); 
-  // en-GB naturally gives dd/mm/yyyy, we replace / with -
+
+  // List of internal fields that should NEVER show up in any email
+  const internalFields = [
+    'processingStatus', 
+    'processingError', 
+    'status', 
+    '_id', 
+    '__v', 
+    'createdAt', 
+    'updatedAt',
+    'type', // already handled in the title
+    'resumeUrl', // usually sent as attachment, not text
+    'marksheetUrl',
+    'applicationFileUrl'
+  ];
 
   return `
-  <div style="
-    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-    background-color: #f4f6f8;
-    padding: 24px;
-  ">
-    <div style="
-      max-width: 650px;
-      margin: 0 auto;
-      background: #ffffff;
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-    ">
-
-      <div style="
-        background: linear-gradient(135deg, #001F39, #084C83);
-        padding: 30px;
-        text-align: center;
-        color: #ffffff;
-      ">
+  <div style="font-family: 'Segoe UI', Roboto, Arial, sans-serif; background-color: #f4f6f8; padding: 24px;">
+    <div style="max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
+      
+      <div style="background: linear-gradient(135deg, #001F39, #084C83); padding: 30px; text-align: center; color: #ffffff;">
         <div style="background: #ffffff; display: inline-block; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
            <img src="${logoUrl}" alt="OLSC Logo" style="height: 40px; display: block;" />
         </div>
-        <h2 style="
-          margin: 0;
-          font-size: 22px;
-          font-weight: 700;
-          letter-spacing: 0.5px;
-          text-transform: uppercase;
-        ">
+        <h2 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">
           OLSC PANEL
         </h2>
-        <p style="
-          margin-top: 6px;
-          font-size: 14px;
-          opacity: 0.9;
-          font-weight: 600;
-        ">
+        <p style="margin-top: 6px; font-size: 14px; opacity: 0.9; font-weight: 600;">
           ${title}
         </p>
-        <p style="
-          margin-top: 4px;
-          font-size: 12px;
-          opacity: 0.7;
-          letter-spacing: 1px;
-        ">
+        <p style="margin-top: 4px; font-size: 12px; opacity: 0.7; letter-spacing: 1px;">
           DATE: ${formattedDate}
         </p>
       </div>
 
       <div style="padding: 28px;">
-        <p style="
-          font-size: 14px;
-          color: #475569;
-          margin-bottom: 20px;
-        ">
+        <p style="font-size: 14px; color: #475569; margin-bottom: 20px;">
           A new submission has been recorded with the following details:
         </p>
 
         <div style="border: 1px solid #f1f5f9; border-radius: 8px; padding: 0 16px;">
           ${Object.entries(data)
-            .filter(([_, value]) => value !== undefined && value !== "")
+            .filter(([key, value]) => {
+              // 1. Exclude internal fields
+              if (internalFields.includes(key)) return false;
+              // 2. Exclude null, undefined, or empty strings
+              if (value === undefined || value === null || value === "") return false;
+              // 3. Prevent "undefined" as a string
+              if (String(value).toLowerCase() === "undefined") return false;
+              
+              return true;
+            })
             .map(([key, value]) => renderRow(formatLabel(key), value))
             .join("")}
         </div>
       </div>
 
-      <div style="
-        background: #f8fafc;
-        padding: 20px;
-        text-align: center;
-        font-size: 12px;
-        color: #64748b;
-        border-top: 1px solid #edf2f7;
-      ">
+      <div style="background: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #edf2f7;">
         <strong>Om Logistics Supply Chain</strong><br />
         This is an automated email. Please do not reply to this address.
       </div>
@@ -106,84 +84,6 @@ const generateProfessionalEmail = (data: Record<string, any>, title: string) => 
   </div>
   `;
 };
-// const generateProfessionalEmail = (data: Record<string, any>, title: string) => {
-//   // Replace this with your actual live website URL
-//   const logoUrl = "https://olscpanel.omlogistics.co.in/api/blogs/696b520889d509221f3085d5/cover"; 
-
-//   return `
-//   <div style="
-//     font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-//     background-color: #f4f6f8;
-//     padding: 24px;
-//   ">
-//     <div style="
-//       max-width: 650px;
-//       margin: 0 auto;
-//       background: #ffffff;
-//       border-radius: 14px;
-//       overflow: hidden;
-//       box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-//     ">
-
-//       <div style="
-//         background: linear-gradient(135deg, #001F39, #084C83);
-//         padding: 30px;
-//         text-align: center;
-//         color: #ffffff;
-//       ">
-//         <div style="background: #ffffff; display: inline-block; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-//            <img src="${logoUrl}" alt="OLSC Logo" style="height: 40px; display: block;" />
-//         </div>
-//         <h2 style="
-//           margin: 0;
-//           font-size: 22px;
-//           font-weight: 700;
-//           letter-spacing: 0.5px;
-//           text-transform: uppercase;
-//         ">
-//           OLSC PANEL
-//         </h2>
-//         <p style="
-//           margin-top: 6px;
-//           font-size: 14px;
-//           opacity: 0.9;
-//         ">
-//           ${title}
-//         </p>
-//       </div>
-
-//       <div style="padding: 28px;">
-//         <p style="
-//           font-size: 14px;
-//           color: #475569;
-//           margin-bottom: 20px;
-//         ">
-//           A new submission has been recorded with the following details:
-//         </p>
-
-//         <div style="border: 1px solid #f1f5f9; border-radius: 8px; padding: 0 16px;">
-//           ${Object.entries(data)
-//             .filter(([_, value]) => value !== undefined && value !== "")
-//             .map(([key, value]) => renderRow(formatLabel(key), value))
-//             .join("")}
-//         </div>
-//       </div>
-
-//       <div style="
-//         background: #f8fafc;
-//         padding: 20px;
-//         text-align: center;
-//         font-size: 12px;
-//         color: #64748b;
-//         border-top: 1px solid #edf2f7;
-//       ">
-//         <strong>Om Logistics Supply Chain</strong><br />
-//         This is an automated email. Please do not reply to this address.
-//       </div>
-//     </div>
-//   </div>
-//   `;
-// };
 
 const formatLabel = (key: string) => {
   return key
@@ -191,33 +91,20 @@ const formatLabel = (key: string) => {
     .replace(/^./, (str) => str.toUpperCase());
 };
 
-const renderRow = (label: string, value: any) => `
-  <div style="
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 12px 0;
-    border-bottom: 1px solid #e5e7eb;
-    gap: 12px;
-    font-size: 14px;
-  ">
-    <span style="
-      color: #64748b;
-      font-weight: 600;
-      min-width: 140px;
-    ">
-      ${label}
-    </span>
-    <span style="
-      color: #0f172a;
-      font-weight: 600;
-      text-align: right;
-      word-break: break-word;
-    ">
-      ${String(value)}
-    </span>
+const renderRow = (label: string, value: any) => {
+  // Convert booleans to readable text
+  let displayValue = String(value);
+  if (typeof value === 'boolean') {
+    displayValue = value ? "Yes" : "No";
+  }
+
+  return `
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid #e5e7eb; gap: 12px; font-size: 14px;">
+    <span style="color: #64748b; font-weight: 600; min-width: 140px;">${label}</span>
+    <span style="color: #0f172a; font-weight: 600; text-align: right; word-break: break-word;">${displayValue}</span>
   </div>
 `;
+};
 
 
 
@@ -437,7 +324,7 @@ export const submitApplication = async (req: Request, res: Response) => {
       // B. Email
           await sendEmail({
           to: "raghav.raj@olsc.in, divyanshu.choudhary@olsc.in",
-          subject: `[URGENT] New ${appTitle} Application - ${firstName} ${lastName}`,
+          subject: `New ${appTitle} Application - ${firstName} ${lastName}`,
           html: emailHtml,
           attachments: [{
             filename: `Application_${firstName}_${lastName}.pdf`,
@@ -631,7 +518,7 @@ export const submitCareerApplication = async (req: Request, res: Response) => {
         // B. Email
           await sendEmail({
           to: "raghav.raj@olsc.in, divyanshu.choudhary@olsc.in",
-          subject: `[URGENT] New ${appTitle} Application - ${req.body.firstName} ${req.body.lastName}`,
+          subject: `New ${appTitle} Application - ${req.body.firstName} ${req.body.lastName}`,
           html: emailHtml,
           attachments: [{
             filename: `Application_${req.body.firstName}_${req.body.lastName}_Maeksheet.pdf`,
