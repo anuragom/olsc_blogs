@@ -122,6 +122,7 @@ app.use(
           "https://blogspaneluat.omlogistics.co.in",
           "http://localhost:5173",
           "https://sanjvik.com",
+          "http://10.10.130.205",
         ],
         frameAncestors: ["'self'"],
       },
@@ -137,8 +138,8 @@ app.use(
       "https://www.omlogisticssupplychain.com",
       "http://localhost:3000",
       "http://localhost:5173",
-      "https://sanjvik.com"
-
+      "https://sanjvik.com",
+      "http://10.10.130.205",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH","OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Accept"],
