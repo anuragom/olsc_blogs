@@ -10,11 +10,13 @@ import { compressPDF } from "../utils/pdfService";
 import path from "path";
 import fs from "fs";
 import mongoose from "mongoose";
+import { AuthRequest } from "@middlewares/auth";
 
 const SELECT_FIELDS_ENQUIRY = 'fullName email phone serviceName status createdAt message';
 const SELECT_FIELDS_APPLICATION = 'type email firstName lastName contactNumber status createdAt applicationFileUrl desiredLocation city state pincode areaSqFt vehiclesOwned hasOwnSpace processingStatus';
 const SELECT_FIELDS_CAREER_APPLICATION = 'firstName lastName email position totalExperience status createdAt jobId resumeUrl';
 const SELECT_FIELDS_JOB = 'title location jobType company profile experienceRequired ctc vacancies qualification description responsibilities isActive createdAt';
+
 
 const generateProfessionalEmail = (data: Record<string, any>, title: string) => {
   const logoUrl = "https://olscpanel.omlogistics.co.in/api/blogs/696b520889d509221f3085d5/cover"; 
@@ -148,8 +150,8 @@ export const createEnquiry = async (req: Request, res: Response) => {
 
 // 2. Assign the recipient list based on that check
     const recipientList = isSpecialService 
-      ? "jatin.kalra@olsc.in" 
-      : "omgroup@olsc.in, monika.arora@olsc.in, customercare@olsc.in";
+      ? "raghav.raj@olsc.in" 
+      : "raghav.raj@olsc.in";
 
           await sendEmail({
           to: recipientList,
@@ -171,23 +173,45 @@ export const createEnquiry = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
-export const getAllEnquiries = async (req: Request, res: Response) => {
+
+export const getAllEnquiries = async (req: AuthRequest, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
-
     const { serviceName, status, startDate, endDate, search } = req.query;
-    const query: any = {};
 
-    if (serviceName) {
+    const query: any = {};
+    const user = req.user;
+
+    if (!user) return res.status(401).json({ message: "User not authenticated" });
+
+    const isSuperAdmin = user.role === 'SuperAdmin' || user.perms.includes('*:*');
+    
+    const allowedReadServices = user.perms
+      .filter(p => p.startsWith('service:') && p.endsWith(':read'))
+      .map(p => p.split(':')[1]);
+
+    const hasWildcardRead = allowedReadServices.includes('*');
+
+    if (!isSuperAdmin && !hasWildcardRead) {
+      if (allowedReadServices.length === 0) {
+        return res.status(403).json({ message: "No service permissions assigned to your role." });
+      }
+
+      if (serviceName) {
+        if (!allowedReadServices.includes(serviceName as string)) {
+          return res.status(403).json({ message: `Permission denied for: ${serviceName}` });
+        }
+        query.serviceName = serviceName;
+      } else {
+        query.serviceName = { $in: allowedReadServices };
+      }
+    } else if (serviceName) {
       query.serviceName = serviceName;
     }
 
-    if (status) {
-      query.status = status;
-    }
-
+    if (status) query.status = status;
     if (search) {
       query.$or = [
         { email: { $regex: search, $options: "i" } },
@@ -195,42 +219,28 @@ export const getAllEnquiries = async (req: Request, res: Response) => {
         { fullName: { $regex: search, $options: "i" } }
       ];
     }
-
     if (startDate) {
       const start = new Date(startDate as string);
       const end = endDate ? new Date(endDate as string) : new Date(startDate as string);
-
       end.setHours(23, 59, 59, 999);
-
-      query.createdAt = {
-        $gte: start,
-        $lte: end
-      };
+      query.createdAt = { $gte: start, $lte: end };
     }
 
-    const enquiries = await Enquiry.find(query)
-      .select(SELECT_FIELDS_ENQUIRY)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    const total = await Enquiry.countDocuments(query);
+    const [enquiries, total] = await Promise.all([
+      Enquiry.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Enquiry.countDocuments(query)
+    ]);
 
     return res.status(200).json({
       data: enquiries,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) }
     });
   } catch (err: any) {
-    console.error("Fetch Enquiries Error:", err);
     return res.status(500).json({ message: err.message });
   }
 };
+
+
 export const updateEnquiryStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -260,11 +270,22 @@ export const updateEnquiryStatus = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
-export const getEnquiryById = async (req: Request, res: Response) => {
+
+export const getEnquiryById = async (req: AuthRequest, res: Response) => {
   try {
+    const user = req.user;
     const enquiry = await Enquiry.findById(req.params.id);
     if (!enquiry) return res.status(404).json({ message: "Enquiry not found" });
-    return res.status(200).json(enquiry);
+    const isSuperAdmin = user?.role === 'SuperAdmin' || user?.perms.includes('*:*');
+    const allowedReadServices = user?.perms
+      .filter(p => p.startsWith('service:') && p.endsWith(':read'))
+      .map(p => p.split(':')[1]);
+    if (allowedReadServices?.includes(enquiry?.serviceName as string) || isSuperAdmin){
+          return res.status(200).json(enquiry);
+      }
+      else{
+          return res.status(403).json({ message: "Access Denied" });
+      }
   } catch (err: any) {
     return res.status(500).json({ message: err.message });
   }

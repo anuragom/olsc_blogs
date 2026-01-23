@@ -13,7 +13,6 @@ export interface IEnquiry extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
-//  , 'automotive-engineering', 'retail-fashion', 'it-consumer-electronics', 'healthcare-pharmaceuticals', 'books-publishing', 'fmcg', 'projects', 'bike-logistics', 'campus-logistics'
 const enquirySchema = new Schema<IEnquiry>(
   {
     fullName: { type: String, required: true, trim: true },
@@ -35,7 +34,6 @@ const enquirySchema = new Schema<IEnquiry>(
   { timestamps: true }
 );
 
-// Index for faster searching in admin panel
 enquirySchema.index({ email: 1, serviceName: 1, createdAt: -1 });
 
 export default model<IEnquiry>("Enquiry", enquirySchema);

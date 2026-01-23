@@ -10,7 +10,7 @@ const uploadDir = process.env.UPLOAD_DIR || "uploads";
 
 export const createBlog = async (req: AuthRequest, res: Response) => {
   try {
-    const authorId = req.user?._id;
+    const authorId = req.user?.userId;
 
     const { title, summary, estimatedReadTime, slug, metaTitle, metaDescription,website } = req.body;
     if (!title) return res.status(400).json({ message: "Title is required" });
@@ -95,7 +95,7 @@ export const createBlog = async (req: AuthRequest, res: Response) => {
 
 export const updateBlogById = async (req: AuthRequest, res: Response) => {
   try {
-    const authorId = req.user?._id;
+    const authorId = req.user?.userId;
     const blogId = req.params.id;
 
     const existingBlog = await Blog.findById(blogId);

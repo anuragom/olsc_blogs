@@ -1,6 +1,7 @@
 import { Router } from "express";
 import * as formController from "@controllers/formController";
 import { uploadLocal } from "@middlewares/upload";
+import { authMiddleware } from "@middlewares/auth";
 
 const router = Router();
 
@@ -35,9 +36,10 @@ router.delete("/pickup/:id", formController.deletePickupRequest);
 router.patch("/pickup/:id/status", formController.updatePickupStatus);
 
 router.post("/", formController.createEnquiry);
-router.get("/", formController.getAllEnquiries);
+// router.get("/", formController.getAllEnquiries);
+router.get("/", authMiddleware, formController.getAllEnquiries);
 
-router.get("/:id", formController.getEnquiryById);
+router.get("/:id",authMiddleware, formController.getEnquiryById);
 router.delete("/:id", formController.deleteEnquiry);
 router.patch("/:id/status", formController.updateEnquiryStatus);
 
