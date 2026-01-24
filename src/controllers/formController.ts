@@ -150,8 +150,8 @@ export const createEnquiry = async (req: Request, res: Response) => {
 
 // 2. Assign the recipient list based on that check
     const recipientList = isSpecialService 
-      ? "raghav.raj@olsc.in" 
-      : "raghav.raj@olsc.in";
+      ? "jatin.kalra@olsc.in" 
+      : "omgroup@olsc.in, monika.arora@olsc.in, customercare@olsc.in";
 
           await sendEmail({
           to: recipientList,
@@ -177,7 +177,7 @@ export const createEnquiry = async (req: Request, res: Response) => {
 export const getAllEnquiries = async (req: AuthRequest, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = parseInt(req.query.limit as string) || 100;
     const skip = (page - 1) * limit;
     const { serviceName, status, startDate, endDate, search } = req.query;
 
@@ -392,7 +392,7 @@ export const submitApplication = async (req: Request, res: Response) => {
 export const getAllApplications = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = parseInt(req.query.limit as string) || 100;
     const skip = (page - 1) * limit;
 
     const { type, status, startDate, endDate, search } = req.query;
@@ -584,7 +584,7 @@ export const submitCareerApplication = async (req: Request, res: Response) => {
 export const getAllCareerApplications = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = parseInt(req.query.limit as string) || 100;
     const { status, position, search, startDate, endDate } = req.query;
 
     const query: any = {};
@@ -734,7 +734,6 @@ export const getJobById = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
 export const submitInstituteApplication = async (req: Request, res: Response) => {
   try {
     console.log("Institute Application Data:", req.body);
@@ -772,7 +771,7 @@ export const submitInstituteApplication = async (req: Request, res: Response) =>
         //B Email
 
         await sendEmail({
-          to: "ominstitute@olsc.in, divyanshu.choudhary@olsc.in",
+          to: "ominstitute@olsc.in",
           subject: `[New Admission] ${req.body.fullName}`,
           html: emailHtml,
           attachments: [{
@@ -803,10 +802,9 @@ export const submitInstituteApplication = async (req: Request, res: Response) =>
     res.status(500).json({ message: error.message });
   }
 };
-
 export const getAllInstituteApplications = async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 10, search, status, startDate, endDate } = req.query;
+    const { page = 1, limit = 100, search, status, startDate, endDate } = req.query;
     const query: any = {};
 
     if (status) query.status = status;
@@ -827,7 +825,7 @@ export const getAllInstituteApplications = async (req: Request, res: Response) =
       .limit(Number(limit));
 
     const total = await InstituteApplication.countDocuments(query);
-    const totalSuccesses = await Application.countDocuments({ processingStatus: 'completed' });
+    const totalSuccesses = await InstituteApplication.countDocuments({ processingStatus: 'completed' });
 
     const totalFailures = total - totalSuccesses;
     res.status(200).json({ data, pagination: { total, page: Number(page), totalPages: Math.ceil(total / Number(limit)), totalSuccesses: totalSuccesses || 0, totalFailures: totalFailures } });
@@ -835,7 +833,6 @@ export const getAllInstituteApplications = async (req: Request, res: Response) =
     res.status(500).json({ message: error.message });
   }
 };
-
 export const getInstituteApplicationById = async (req: Request, res: Response) => {
   try {
     const app = await InstituteApplication.findById(req.params.id);
@@ -845,14 +842,12 @@ export const getInstituteApplicationById = async (req: Request, res: Response) =
     res.status(500).json({ message: error.message });
   }
 };
-
 export const updateInstituteStatus = async (req: Request, res: Response) => {
     try {
       const updated = await InstituteApplication.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
       res.status(200).json({ success: true, data: updated });
     } catch (error: any) { res.status(500).json({ message: error.message }); }
 };
-
 export const downloadInstituteFile = async (req: Request, res: Response) => {
   try {
     const application = await InstituteApplication.findById(req.params.id);
@@ -888,9 +883,6 @@ export const downloadInstituteFile = async (req: Request, res: Response) => {
     res.status(500).send(err.message);
   }
 };
-
-
-
 export const createPickupRequest = async (req: Request, res: Response) => {
   try {
     // 1. Validation of mandatory fields based on your frontend logic
@@ -968,8 +960,6 @@ export const createPickupRequest = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
-
 export const getAllPickupRequests = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -1019,7 +1009,6 @@ export const getAllPickupRequests = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
 export const updatePickupStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -1038,7 +1027,6 @@ export const updatePickupStatus = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
 export const getPickupById = async (req: Request, res: Response) => {
   try {
     const pickup = await PickupRequest.findById(req.params.id);
@@ -1048,7 +1036,6 @@ export const getPickupById = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
 export const deletePickupRequest = async (req: Request, res: Response) => {
   try {
     await PickupRequest.findByIdAndDelete(req.params.id);
