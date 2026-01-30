@@ -109,9 +109,6 @@ const renderRow = (label: string, value: any) => {
 `;
 };
 
-
-
-
 export const createEnquiry = async (req: Request, res: Response) => {
   try {
     const { fullName, email, phone, query, message, serviceName } = req.body;
@@ -174,10 +171,39 @@ export const createEnquiry = async (req: Request, res: Response) => {
   }
 };
 
+export const addRemarksToEnquiry = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { remarks } = req.body;
+
+    if (!remarks) {
+      return res.status(400).json({ message: "Remarks are required." });
+    }
+
+    const enquiry = await Enquiry.findByIdAndUpdate(
+      id,
+      { $set: { remarks } },
+      { new: true }
+    );
+
+    if (!enquiry) {
+      return res.status(404).json({ message: "Enquiry not found." });
+    }
+
+    return res.status(200).json({
+      message: "Remarks added successfully.",
+      data: enquiry
+    });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+
 export const getAllEnquiries = async (req: AuthRequest, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 100;
+    const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
     const { serviceName, status, startDate, endDate, search } = req.query;
 
@@ -960,6 +986,35 @@ export const createPickupRequest = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+export const addRemarksToPickupRequest = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { remarks } = req.body;
+
+    if (!remarks) {
+      return res.status(400).json({ message: "Remarks are required." });
+    }
+
+    const pickupRequest = await PickupRequest.findByIdAndUpdate(
+      id,
+      { $set: { remarks } },
+      { new: true }
+    );
+
+    if (!pickupRequest) {
+      return res.status(404).json({ message: "Pickup Request not found." });
+    }
+
+    return res.status(200).json({
+      message: "Remarks added successfully.",
+      data: pickupRequest
+    });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 export const getAllPickupRequests = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;

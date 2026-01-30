@@ -12,6 +12,7 @@ export interface IEnquiry extends Document {
   status: 'new' | 'contacted' | 'resolved';
   createdAt: Date;
   updatedAt: Date;
+  remarks?: string;
 }
 const enquirySchema = new Schema<IEnquiry>(
   {
@@ -29,7 +30,8 @@ const enquirySchema = new Schema<IEnquiry>(
       type: String,
       enum: ['new', 'contacted', 'resolved'],
       default: 'new'
-    }
+    },
+    remarks: { type: String }
   },
   { timestamps: true }
 );
