@@ -32,6 +32,7 @@ export interface IPickupRequest extends Document {
   product_packagingType: string;
   product_materialType?: string;
   product_additionalNotes?: string;
+  remarks?: string;
 
   // Freight Mode
   freight_mode: 'Paid' | 'To-Pay';
@@ -107,7 +108,8 @@ const pickupRequestSchema = new Schema<IPickupRequest>(
       enum: ['pending', 'completed', 'failed', 'stuck'], 
       default: 'pending' 
     },
-    processingError: { type: String }
+    processingError: { type: String },
+    remarks: { type: String }
   },
   { timestamps: true }
 );

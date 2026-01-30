@@ -30,12 +30,14 @@ router.get("/institute/:id/download", formController.downloadInstituteFile);
 router.patch("/institute/:id/status", formController.updateInstituteStatus);
 
 router.post("/pickup",formController.createPickupRequest);
+router.put("/pickup/:id", formController.addRemarksToPickupRequest);
 router.get("/pickup", formController.getAllPickupRequests);
 router.get("/pickup/:id", formController.getPickupById);
 router.delete("/pickup/:id", formController.deletePickupRequest);
 router.patch("/pickup/:id/status", formController.updatePickupStatus);
 
 router.post("/", formController.createEnquiry);
+router.put("/:id", formController.addRemarksToEnquiry);
 // router.get("/", formController.getAllEnquiries);
 router.get("/", authMiddleware, formController.getAllEnquiries);
 
