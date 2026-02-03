@@ -87,13 +87,11 @@ const generateProfessionalEmail = (data: Record<string, any>, title: string) => 
   </div>
   `;
 };
-
 const formatLabel = (key: string) => {
   return key
     .replace(/([A-Z])/g, " $1")
     .replace(/^./, (str) => str.toUpperCase());
 };
-
 const renderRow = (label: string, value: any) => {
   // Convert booleans to readable text
   let displayValue = String(value);
@@ -108,6 +106,11 @@ const renderRow = (label: string, value: any) => {
   </div>
 `;
 };
+
+
+
+
+
 
 export const createEnquiry = async (req: Request, res: Response) => {
   try {
@@ -170,36 +173,84 @@ export const createEnquiry = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 export const addRemarksToEnquiry = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { remarks } = req.body;
+    const { remarks } = req.body; // This is the text string from the frontend
 
-    if (!remarks) {
-      return res.status(400).json({ message: "Remarks are required." });
+    if (!remarks || remarks.trim() === "") {
+      return res.status(400).json({ message: "Remarks text is required." });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ message: "User not authenticated." });
     }
 
     const enquiry = await Enquiry.findByIdAndUpdate(
       id,
-      { $set: { remarks } },
+      { 
+        $push: { 
+          remarks: { 
+            text: remarks, 
+            createdBy: req.user.userId,
+            createdAt: new Date() ,
+            fullName: req.user?.fullName
+          } 
+        } 
+      },
       { new: true }
-    );
+    ).populate("remarks.createdBy", "fullName userName");
 
     if (!enquiry) {
       return res.status(404).json({ message: "Enquiry not found." });
     }
 
     return res.status(200).json({
-      message: "Remarks added successfully.",
+      message: "Remark added successfully.",
       data: enquiry
     });
   } catch (err: any) {
     return res.status(500).json({ message: err.message });
   }
 };
+export const updateRemark = async (req: AuthRequest, res : Response) => {
+  try {
+    const { id, remarkId } = req.params;
+    const { text } = req.body;
 
+    if (!text) {
+      return res.status(400).json({ message: "Remark text is required" });
+    }
 
+    const enquiry = await Enquiry.findById(id);
+
+    if (!enquiry) {
+      return res.status(404).json({ message: "Enquiry not found" });
+    }
+
+    const remark = enquiry.remarks.find(r => r._id.toString() === remarkId);
+
+    if (!remark) {
+      return res.status(404).json({ message: "Remark not found" });
+    }
+
+    if (remark.createdBy.toString() !== req?.user?.userId && req?.user?.role !== 'SuperAdmin') {
+      return res.status(403).json({ message: "You can only edit your own remarks" });
+    }
+
+    remark.text = text;
+
+    await enquiry.save();
+
+    res.status(200).json({
+      success: true,
+      data: enquiry
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
 export const getAllEnquiries = async (req: AuthRequest, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -265,8 +316,6 @@ export const getAllEnquiries = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
-
 export const updateEnquiryStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -296,7 +345,6 @@ export const updateEnquiryStatus = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
 export const getEnquiryById = async (req: AuthRequest, res: Response) => {
   try {
     const user = req.user;
@@ -324,6 +372,10 @@ export const deleteEnquiry = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
+
+
+
 
 export const submitApplication = async (req: Request, res: Response) => {
   try {
@@ -541,6 +593,12 @@ export const downloadApplicationFile = async (req: Request, res: Response) => {
         return res.status(500).json({ message: err.message });
     }
 };
+
+
+
+
+
+
 export const submitCareerApplication = async (req: Request, res: Response) => {
   try {
     const file = req.file;
@@ -760,6 +818,13 @@ export const getJobById = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
+
+
+
+
+
+
 export const submitInstituteApplication = async (req: Request, res: Response) => {
   try {
     console.log("Institute Application Data:", req.body);
@@ -909,6 +974,13 @@ export const downloadInstituteFile = async (req: Request, res: Response) => {
     res.status(500).send(err.message);
   }
 };
+
+
+
+
+
+
+
 export const createPickupRequest = async (req: Request, res: Response) => {
   try {
     // 1. Validation of mandatory fields based on your frontend logic
@@ -986,7 +1058,6 @@ export const createPickupRequest = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 export const addRemarksToPickupRequest = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -1014,7 +1085,6 @@ export const addRemarksToPickupRequest = async (req: AuthRequest, res: Response)
     return res.status(500).json({ message: err.message });
   }
 };
-
 export const getAllPickupRequests = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;

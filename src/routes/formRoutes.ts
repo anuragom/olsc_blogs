@@ -37,7 +37,8 @@ router.delete("/pickup/:id", formController.deletePickupRequest);
 router.patch("/pickup/:id/status", formController.updatePickupStatus);
 
 router.post("/", formController.createEnquiry);
-router.put("/:id", formController.addRemarksToEnquiry);
+router.put("/:id",authMiddleware, formController.addRemarksToEnquiry);
+router.patch('/:id/remarks/:remarkId', authMiddleware, formController.updateRemark);
 // router.get("/", formController.getAllEnquiries);
 router.get("/", authMiddleware, formController.getAllEnquiries);
 

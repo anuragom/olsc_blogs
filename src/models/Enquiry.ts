@@ -2,6 +2,14 @@ import { Schema, model, Document } from "mongoose";
 
 export type ServiceType = 'rail_logistics'| 'air_logistics'| 'warehousing'| '3PL'| 'speed_trucking'|'FTL'|'PTL'|'contact_us'|'automotive-engineering'|'retail-fashion'|'it-consumer-electronics'|'healthcare-pharmaceuticals'|'books-publishing'|'fmcg'|'projects'|'bike-logistics'|'campus-logistics';
 
+export interface IRemark {
+  _id:Schema.Types.ObjectId;
+  text: string;
+  createdBy: Schema.Types.ObjectId;
+  createdAt: Date;
+  fullName: String;
+}
+
 export interface IEnquiry extends Document {
   fullName: string;
   email: string;
@@ -12,7 +20,7 @@ export interface IEnquiry extends Document {
   status: 'new' | 'contacted' | 'resolved';
   createdAt: Date;
   updatedAt: Date;
-  remarks?: string;
+  remarks: IRemark[];
 }
 const enquirySchema = new Schema<IEnquiry>(
   {
@@ -31,7 +39,14 @@ const enquirySchema = new Schema<IEnquiry>(
       enum: ['new', 'contacted', 'resolved'],
       default: 'new'
     },
-    remarks: { type: String }
+    remarks: [
+      {
+        text: { type: String, required: true },
+        createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        createdAt: { type: Date, default: Date.now },
+        fullName: { type: String, required: true }
+      }
+    ]
   },
   { timestamps: true }
 );
