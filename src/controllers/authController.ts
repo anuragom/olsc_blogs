@@ -11,9 +11,10 @@ import {
 
 import Role, { IRole } from "../models/Role";
 import mongoose from "mongoose";
+import { AuthRequest } from "@middlewares/auth";
 
-const generateTokens = (userId: string, roleName: string, permissions: string[], fullName: string) => {
-  const payload = { userId, role: roleName, perms: permissions, fullName };
+const generateTokens = (userId: string, roleName: string, fullName: string) => {
+  const payload = { userId, role: roleName, fullName };
 
   const accessToken = jwt.sign(payload, JWT_SECRET as string, { expiresIn: JWT_EXPIRES_IN as unknown as jwt.SignOptions['expiresIn'] });
   const refreshToken = jwt.sign(payload, JWT_REFRESH_SECRET as string, { expiresIn: JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'] });
@@ -59,7 +60,7 @@ export const signup = async (req: Request, res: Response) => {
 
     await user.save();
 
-    const { accessToken, refreshToken } = generateTokens(user._id.toString(), 'Guest',[], fullName);
+    const { accessToken, refreshToken } = generateTokens(user._id.toString(), 'Guest', fullName);
 
     user.refreshToken = refreshToken;
     await user.save();
@@ -91,7 +92,6 @@ export const login = async (req: Request, res: Response) => {
     const { accessToken, refreshToken } = generateTokens(
       user._id.toString(), 
       roleData.name, 
-      roleData.permissions,
       user.fullName
     );
 
@@ -130,7 +130,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     const roleData = user.role as any;
 
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(
-      user._id.toString(), roleData.name,roleData.permissions , user.fullName
+      user._id.toString(), roleData.name, user.fullName
     );
 
     user.refreshToken = newRefreshToken;
@@ -170,19 +170,16 @@ export const logout = async (req: Request, res: Response) => {
   }
 };
 
-export const getCurrentUser = async (req: Request, res: Response) => {
+export const getCurrentUser = async (req: AuthRequest, res: Response) => {
   try {
-    const token = req.cookies?.accessToken;
-    if (!token) return res.status(401).json({ message: "No access token" });
-
-    const decoded = jwt.verify(token, JWT_SECRET as Secret) as jwt.JwtPayload;
-    const user = await User.findById(decoded.userId).select("-password").populate("role");
-
-    if (!user) return res.status(404).json({ message: "User not found" });
+    // req.user is already populated by authMiddleware!
+    const user = await User.findById(req.user?.userId)
+      .select("-password -refreshToken")
+      .populate("role");
 
     res.status(200).json({ user });
   } catch {
-    res.status(401).json({ message: "Invalid or expired token" });
+    res.status(500).json({ message: "Error fetching user" });
   }
 };
 
