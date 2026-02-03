@@ -1,28 +1,42 @@
 import { Request, Response, NextFunction } from "express";
 import { JWT_SECRET } from "../config/config";
 import jwt, { Secret } from "jsonwebtoken";
+import User from "@models/User";
 
 // 1. Define the exact shape of your Token Payload
 export interface TokenPayload {
   userId: string;
   role: string;
-  perms: string[];
-  fullName: string[];
+  fullName: string;
 }
 
-// 2. Extend the Express Request type
 export interface AuthRequest extends Request {
-  user?: TokenPayload;
+  user?: TokenPayload & { perms: string[] };
 }
 
-export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const token = req.cookies.accessToken;
   if (!token) return res.status(401).json({ message: "No token provided" });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET as Secret) as TokenPayload;
+
+    // Fetch the latest permissions from DB
+    // Optimization: Use .lean() for faster read
+    const user = await User.findById(decoded.userId).populate("role").lean();
     
-    req.user = decoded; 
+    if (!user || !user.role) {
+      return res.status(401).json({ message: "User or Role no longer exists" });
+    }
+
+    const roleData = user.role as any;
+
+    // Attach user data AND permissions to the request object
+    req.user = {
+      ...decoded,
+      perms: roleData.permissions || []
+    }; 
+    
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
@@ -32,7 +46,12 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
 export const authorize = (requiredPermission: string) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
-    const hasPermission = req.user.perms.includes(requiredPermission) || req.user.role === 'SuperAdmin';
+
+    const hasPermission = 
+      req.user.role === 'SuperAdmin' || 
+      req.user.perms.includes(requiredPermission) || 
+      req.user.perms.includes('*:*');
+
     if (!hasPermission) return res.status(403).json({ message: "Forbidden" });
     next();
   };

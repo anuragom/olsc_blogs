@@ -9,7 +9,7 @@ router.post("/signup",checkWriteKey ,signup);
 router.post("/login", login);
 router.post("/refresh-token", refreshToken);
 router.post("/logout", logout);
-router.get("/me", getCurrentUser);
+router.get("/me", authMiddleware,getCurrentUser);
 
 router.post("/roles", authMiddleware, authorize("roles:manage"), createRole);
 router.put("/roles",authMiddleware,authorize("roles:manage"),updateRole);
