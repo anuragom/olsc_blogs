@@ -12,9 +12,9 @@ import {
 import Role, { IRole } from "../models/Role";
 import mongoose from "mongoose";
 
-const generateTokens = (userId: string, roleName: string, permissions: string[]) => {
-  const payload = { userId, role: roleName, perms: permissions };
-  
+const generateTokens = (userId: string, roleName: string, permissions: string[], fullName: string) => {
+  const payload = { userId, role: roleName, perms: permissions, fullName };
+
   const accessToken = jwt.sign(payload, JWT_SECRET as string, { expiresIn: JWT_EXPIRES_IN as unknown as jwt.SignOptions['expiresIn'] });
   const refreshToken = jwt.sign(payload, JWT_REFRESH_SECRET as string, { expiresIn: JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'] });
 
@@ -54,12 +54,12 @@ export const signup = async (req: Request, res: Response) => {
       fullName,
       password: hashedPassword,
       employeeId,
-      role:new mongoose.Types.ObjectId("6971c3fbb39c2424f396e1ba"),
+      role:new mongoose.Types.ObjectId("69736b3285d7cf0182c66972"),
     });
 
     await user.save();
 
-    const { accessToken, refreshToken } = generateTokens(user._id.toString(), 'Guest',[]);
+    const { accessToken, refreshToken } = generateTokens(user._id.toString(), 'Guest',[], fullName);
 
     user.refreshToken = refreshToken;
     await user.save();
@@ -68,7 +68,7 @@ export const signup = async (req: Request, res: Response) => {
 
     res.status(201).json({
       message: "Signup successful",
-      data: { accessToken, refreshToken, user },
+      data: { user },
     });
   } catch (err) {
     console.error(err);
@@ -91,14 +91,18 @@ export const login = async (req: Request, res: Response) => {
     const { accessToken, refreshToken } = generateTokens(
       user._id.toString(), 
       roleData.name, 
-      roleData.permissions
+      roleData.permissions,
+      user.fullName
     );
 
     user.refreshToken = refreshToken;
     await user.save();
 
-    res.cookie("accessToken", accessToken, { httpOnly: true, secure: true, sameSite: 'strict' });
-    res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, sameSite: 'strict' });
+    setTokensAsCookies(res, accessToken, refreshToken);
+
+
+    // res.cookie("accessToken", accessToken, { httpOnly: true, secure: true, sameSite: 'strict' });
+    // res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, sameSite: 'strict' });
 
     res.status(200).json({ message: "Login successful", user: { fullName: user.fullName, role: roleData.name } });
   } catch (err) {
@@ -126,7 +130,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     const roleData = user.role as any;
 
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(
-      user._id.toString(), roleData.name,roleData.permissions 
+      user._id.toString(), roleData.name,roleData.permissions , user.fullName
     );
 
     user.refreshToken = newRefreshToken;
@@ -136,7 +140,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 
     res.status(200).json({
       message: "Token refreshed successfully",
-      data: { accessToken, refreshToken: newRefreshToken },
+      // data: { accessToken, refreshToken: newRefreshToken },
     });
   } catch (err) {
     console.error(err);
