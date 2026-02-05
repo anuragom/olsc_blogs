@@ -316,6 +316,36 @@ export const getAllEnquiries = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
+export const updateEnquiryAssignment = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { type_of_query, assigned_to } = req.body;
+    
+    const updateData: any = {};
+    if (type_of_query !== undefined) updateData.type_of_query = type_of_query;
+    if (assigned_to !== undefined) updateData.assigned_to = assigned_to;
+
+    const updatedEnquiry = await Enquiry.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedEnquiry) {
+      return res.status(404).json({ message: "Enquiry not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Assignment updated successfully",
+      data: updatedEnquiry
+    });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 export const updateEnquiryStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

@@ -25,7 +25,7 @@ const jobSchema = new Schema<IJob>({
   title: { type: String, required: true },
   location: { type: String, required: true },
   jobType: { type: String, enum: ['Full-time', 'Internship', 'Part-time', 'Contractual'], default: 'Full-time' },
-  company: { type: String, default: 'OM Logistics Ltd.' },
+  company: { type: String, default: 'OM Logistics Supply Chain Pvt Ltd' },
   profile: { type: String, enum: JobProfileEnum, required: true },
   experienceRequired: { type: String, required: true },
   ctc: { type: String, required: true },

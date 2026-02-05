@@ -39,9 +39,8 @@ router.patch("/pickup/:id/status", formController.updatePickupStatus);
 router.post("/", formController.createEnquiry);
 router.put("/:id",authMiddleware, formController.addRemarksToEnquiry);
 router.patch('/:id/remarks/:remarkId', authMiddleware, formController.updateRemark);
-// router.get("/", formController.getAllEnquiries);
 router.get("/", authMiddleware, formController.getAllEnquiries);
-
+router.patch("/:id/assignment", authMiddleware, formController.updateEnquiryAssignment);
 router.get("/:id",authMiddleware, formController.getEnquiryById);
 router.delete("/:id", formController.deleteEnquiry);
 router.patch("/:id/status", formController.updateEnquiryStatus);
