@@ -151,7 +151,7 @@ export const createEnquiry = async (req: Request, res: Response) => {
 // 2. Assign the recipient list based on that check
     const recipientList = isSpecialService 
       ? "jatin.kalra@olsc.in" 
-      : "omgroup@olsc.in, monika.arora@olsc.in, customercare@olsc.in";
+      : "omgroup@olsc.in, customercare@olsc.in";
 
           await sendEmail({
           to: recipientList,
@@ -1060,7 +1060,7 @@ export const createPickupRequest = async (req: Request, res: Response) => {
         // Routing Logic (Same as Enquiry)
         // Note: Pickup Request typically goes to main operations, 
         // but adding your specific routing if serviceName was involved.
-        const recipientList = "omgroup@olsc.in, monika.arora@olsc.in, customercare@olsc.in";
+        const recipientList = "omgroup@olsc.in, customercare@olsc.in";
 
         await sendEmail({
           to: recipientList,
