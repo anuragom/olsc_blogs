@@ -278,7 +278,7 @@ export const getAllBlogs = async (req: Request, res: Response) => {
 export const getAllSlugs = async (req: Request, res: Response) => {
   try {
 
-    const blogs = await Blog.find()
+    const blogs = await Blog.find({ website: "omlogistics" })
       .select('slug') 
       .lean();
     
