@@ -153,9 +153,11 @@ export const createEnquiry = async (req: Request, res: Response) => {
       ? "jatin.kalra@olsc.in" 
       : "omgroup@olsc.in, customercare@olsc.in";
 
+    // const recipientList= "raghav.raj@olsc.in"
+
           await sendEmail({
           to: recipientList,
-          subject: `[New Enquiry] - ${serviceName}`,
+          subject: `[New Enquiry] - ${serviceName} phone-${phone}`,
           html: emailHtml,
           attachments: emailAttachments
         });
