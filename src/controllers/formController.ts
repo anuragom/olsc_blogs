@@ -149,11 +149,11 @@ export const createEnquiry = async (req: Request, res: Response) => {
        const isSpecialService = ['bike-logistics', 'campus-logistics'].includes(serviceName);
 
 // 2. Assign the recipient list based on that check
-    // const recipientList = isSpecialService 
-    //   ? "jatin.kalra@olsc.in" 
-    //   : "omgroup@olsc.in, customercare@olsc.in";
+    const recipientList = isSpecialService 
+      ? "jatin.kalra@olsc.in" 
+      : "omgroup@olsc.in, customercare@olsc.in";
 
-    const recipientList= "raghav.raj@olsc.in"
+    // const recipientList= "raghav.raj@olsc.in"
 
           await sendEmail({
           to: recipientList,
