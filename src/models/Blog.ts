@@ -12,6 +12,7 @@ export interface Block {
     image?: {
       data: Buffer;
       contentType: string;
+      alt?: string;
     };
     caption?: string;
     language?: string;
@@ -37,12 +38,14 @@ export interface IBlog extends Document {
   images?: {
     data: Buffer;
     contentType: string;
+    alt?: string;
   }[];
   faqs?: FAQ[];
   author?: Types.ObjectId | IUser;
   coverImage?: {
     data: Buffer;
     contentType: string;
+    alt?: string;
   };
   website: WebsiteOptions;
   isPublished: boolean;
@@ -54,6 +57,7 @@ const imageSchema = new Schema(
   {
     data: Buffer,
     contentType: String,
+    alt: { type: String, default: "" },
   },
   { _id: false }
 );
