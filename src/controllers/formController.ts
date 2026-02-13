@@ -318,7 +318,6 @@ export const getAllEnquiries = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
 export const updateEnquiryAssignment = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -347,7 +346,6 @@ export const updateEnquiryAssignment = async (req: AuthRequest, res: Response) =
     return res.status(500).json({ message: err.message });
   }
 };
-
 export const updateEnquiryStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -1131,7 +1129,6 @@ export const addRemarksToPickupRequest = async (req: AuthRequest, res: Response)
     return res.status(500).json({ message: err.message });
   }
 };
-
 export const updatePickupRemark = async (req: AuthRequest, res : Response) => {
   try {
     const { id, remarkId } = req.params;
@@ -1170,7 +1167,30 @@ export const updatePickupRemark = async (req: AuthRequest, res : Response) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+export const updatePickupAssignment = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { assigned_to } = req.body;
 
+    const updatedPickup = await PickupRequest.findByIdAndUpdate(
+      id,
+      { assigned_to },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedPickup) {
+      return res.status(404).json({ message: "Pickup Request not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Assignment updated successfully",
+      data: updatedPickup
+    });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
 export const getAllPickupRequests = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;

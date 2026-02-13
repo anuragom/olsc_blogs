@@ -41,6 +41,7 @@ export interface IPickupRequest extends Document {
   product_materialType?: string;
   product_additionalNotes?: string;
   remarks: IRemark[];
+  assigned_to?: string;    
 
   // Freight Mode
   freight_mode: 'Paid' | 'To-Pay';
@@ -124,8 +125,10 @@ const pickupRequestSchema = new Schema<IPickupRequest>(
         createdAt: { type: Date, default: Date.now },
         fullName: { type: String, required: true }
       }
-    ]
+    ],
+    assigned_to: { type: String, trim: true },
   },
+  
   { timestamps: true }
 );
 

@@ -33,6 +33,7 @@ router.post("/pickup",formController.createPickupRequest);
 router.put("/pickup/:id",authMiddleware, formController.addRemarksToPickupRequest);
 router.patch('/pickup/:id/remarks/:remarkId', authMiddleware, formController.updatePickupRemark);
 router.get("/pickup", formController.getAllPickupRequests);
+router.patch("/pickup/:id/assignment", authMiddleware, formController.updatePickupAssignment);
 router.get("/pickup/:id", formController.getPickupById);
 router.delete("/pickup/:id", formController.deletePickupRequest);
 router.patch("/pickup/:id/status", formController.updatePickupStatus);
