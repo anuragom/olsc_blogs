@@ -1,5 +1,13 @@
 import { Schema, model, Document } from "mongoose";
 
+export interface IRemark {
+  _id: Schema.Types.ObjectId;
+  text: string;
+  createdBy: Schema.Types.ObjectId;
+  createdAt: Date;
+  fullName: string;
+}
+
 export interface IPickupRequest extends Document {
   // Consignor Details
   consignor_fullName: string;
@@ -32,7 +40,7 @@ export interface IPickupRequest extends Document {
   product_packagingType: string;
   product_materialType?: string;
   product_additionalNotes?: string;
-  remarks?: string;
+  remarks: IRemark[];
 
   // Freight Mode
   freight_mode: 'Paid' | 'To-Pay';
@@ -109,7 +117,14 @@ const pickupRequestSchema = new Schema<IPickupRequest>(
       default: 'pending' 
     },
     processingError: { type: String },
-    remarks: { type: String }
+    remarks: [
+      {
+        text: { type: String, required: true },
+        createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        createdAt: { type: Date, default: Date.now },
+        fullName: { type: String, required: true }
+      }
+    ]
   },
   { timestamps: true }
 );

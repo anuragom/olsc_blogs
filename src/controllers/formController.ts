@@ -1099,11 +1099,25 @@ export const addRemarksToPickupRequest = async (req: AuthRequest, res: Response)
       return res.status(400).json({ message: "Remarks are required." });
     }
 
+     if (!req.user) {
+      return res.status(401).json({ message: "User not authenticated." });
+    }
+
     const pickupRequest = await PickupRequest.findByIdAndUpdate(
       id,
-      { $set: { remarks } },
+      { 
+        $push: { 
+          remarks: { 
+            text: remarks, 
+            createdBy: req?.user.userId,
+            createdAt: new Date() ,
+            fullName: req?.user?.fullName
+          } 
+        } 
+      },
       { new: true }
-    );
+    ).populate("remarks.createdBy", "fullName userName");
+
 
     if (!pickupRequest) {
       return res.status(404).json({ message: "Pickup Request not found." });
@@ -1117,6 +1131,46 @@ export const addRemarksToPickupRequest = async (req: AuthRequest, res: Response)
     return res.status(500).json({ message: err.message });
   }
 };
+
+export const updatePickupRemark = async (req: AuthRequest, res : Response) => {
+  try {
+    const { id, remarkId } = req.params;
+    const { text } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ message: "Remark text is required" });
+    }
+
+    const pickup = await PickupRequest.findById(id);
+
+    if (!pickup) {
+      return res.status(404).json({ message: "Pickup Request not found" });
+    }
+
+    const remark = pickup.remarks.find(r => r._id.toString() === remarkId);
+
+    if (!remark) {
+      return res.status(404).json({ message: "Remark not found" });
+    }
+
+    if (remark.createdBy.toString() !== req?.user?.userId && req?.user?.role !== 'SuperAdmin') {
+      return res.status(403).json({ message: "You can only edit your own remarks" });
+    }
+
+    remark.text = text;
+
+    await pickup.save();
+
+    res.status(200).json({
+      success: true,
+      data: pickup
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 export const getAllPickupRequests = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
