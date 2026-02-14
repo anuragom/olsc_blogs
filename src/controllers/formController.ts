@@ -1060,7 +1060,7 @@ export const createPickupRequest = async (req: Request, res: Response) => {
         // Routing Logic (Same as Enquiry)
         // Note: Pickup Request typically goes to main operations, 
         // but adding your specific routing if serviceName was involved.
-        const recipientList = "omgroup@olsc.in, customercare@olsc.in";
+        const recipientList = "omgroup@olsc.in, jatin.kalra@olsc.in, sapna.meena@olsc.in";
 
         await sendEmail({
           to: recipientList,
